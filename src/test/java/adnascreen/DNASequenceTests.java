@@ -25,6 +25,13 @@ public class DNASequenceTests {
 	}
 	
 	@Test
+	public void exampleReverseComplement(){
+		DNASequence A = new DNASequence("ACTGCGTCTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC");
+		DNASequence r = A.reverseComplement();
+		System.out.println(r);
+	}
+	
+	@Test
 	public void hamming1(){
 		DNASequence s1 = new DNASequence("TGACGCA");
 		DNASequence s2 = new DNASequence("AGACGCA");

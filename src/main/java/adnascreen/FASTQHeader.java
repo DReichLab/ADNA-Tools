@@ -23,10 +23,14 @@ public class FASTQHeader {
 	private int index;
 
 	public FASTQHeader(String line){
-		if(line.charAt(0) != '@'){
-			throw new IllegalArgumentException("First character of FASTQ header should be '@'");
+		// htsjdk checks and removes @ header character
+		String noLeading; 
+		if(line.charAt(0) == '@'){
+			noLeading = line.substring(1);
+		} else {
+			noLeading = line;
 		}
-		String noLeading = line.substring(1);
+		
 		String [] initialSplit = noLeading.split(" ");
 		if(initialSplit.length > 2)
 			throw new IllegalArgumentException("Unexpected spaces in FASTQ header");

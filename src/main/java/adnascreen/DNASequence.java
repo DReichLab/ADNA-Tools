@@ -43,6 +43,10 @@ public class DNASequence {
 	public char charAt(int index){
 		return sequence.charAt(index);
 	}
+	
+	public DNASequence subsequence(int beginIndex, int endIndex){
+		return new DNASequence(sequence.substring(beginIndex, endIndex));
+	}
 
 	public DNASequence reverseComplement(){
 		StringBuilder b = new StringBuilder();

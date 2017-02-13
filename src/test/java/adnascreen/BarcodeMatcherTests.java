@@ -82,7 +82,7 @@ public class BarcodeMatcherTests {
 			result = barcodeMatcher.find(query2);
 			assertEquals(expected, result);
 			
-			DNASequence queryInteractive = new DNASequence("ACTGCNT");
+			DNASequence queryInteractive = new DNASequence("ACCTTGT");
 			result = barcodeMatcher.find(queryInteractive);
 			System.out.println(result);
 		}

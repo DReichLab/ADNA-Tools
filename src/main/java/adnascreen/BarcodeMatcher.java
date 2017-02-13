@@ -21,8 +21,7 @@ public class BarcodeMatcher {
 	private Set<String> referenceSets;
 	private Map<DNASequence, String> cache;
 	private int maxHammingDistance;
-	
-	// TODO match length across sets
+	private int barcodeLength = -1;
 	
 	public BarcodeMatcher(){
 		referenceSets = new HashSet<String>();
@@ -33,6 +32,10 @@ public class BarcodeMatcher {
 		this();
 		this.maxHammingDistance = maxHammingDistance;
 		loadFile(filename);
+	}
+	
+	public int getBarcodeLength(){
+		return barcodeLength;
 	}
 
 	/**
@@ -67,7 +70,9 @@ public class BarcodeMatcher {
 			// check that barcodes are of the same length
 			if(barcodeStrings.length > 0){
 				for(String barcode : barcodeStrings){
-					if(barcode.length() != barcodeStrings[0].length())
+					if(barcodeLength == -1) // set initial length once
+						barcodeLength = barcode.length();
+					if(barcode.length() != barcodeLength) // check all lengths against the first
 						throw new IllegalArgumentException("barcode length mismatch");
 					cache.put(new DNASequence(barcode), barcodeSetString);
 				}
