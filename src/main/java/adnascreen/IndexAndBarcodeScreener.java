@@ -1,13 +1,17 @@
 package adnascreen;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileInputStream;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -32,7 +36,7 @@ public class IndexAndBarcodeScreener {
 			System.exit(1);
 		}
 
-		FileWriter [] fileOutputs = new FileWriter[numOutputFiles];;
+		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];;
 		try(
 				FileInputStream r1File = new FileInputStream(args[3]);
 				FileInputStream r2File = new FileInputStream(args[4]);
@@ -49,8 +53,8 @@ public class IndexAndBarcodeScreener {
 			String outputFilenameRoot = args[7];
 			for(int i = 0; i < numOutputFiles; i++){
 				// start counting from 1 for filenames
-				String outputFilename = outputFilenameRoot + String.format("_%03d", i + 1);
-				fileOutputs[i] = new FileWriter(outputFilename);
+				String outputFilename = String.format("%s_%03d.fastq.gz", outputFilenameRoot, i + 1);
+				fileOutputs[i] = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)))));
 			}
 			
 			int pairedReadInputCount = 0;
@@ -68,7 +72,7 @@ public class IndexAndBarcodeScreener {
 				if(merged != null){
 					// TODO histogram of length distribution
 					// separate into different files
-					fileOutputs[pairedReadOutputCount % numOutputFiles].write(merged.toString());
+					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
 				}
 			}
