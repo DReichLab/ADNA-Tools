@@ -15,23 +15,23 @@ public class BarcodeMatcherTests {
 	@Test
 	public void exactMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-
+		String label = "Q22";
 		DNASequence query = new DNASequence("ATCGATT");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.addReferenceSet(barcodeSet);
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String result = barcodeMatcher.find(query);
-		assertEquals(result, barcodeSet);
+		assertEquals(label, result);
 	}
 	
 	@Test
 	public void noMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-
+		String label = "Q22";
 		DNASequence query = new DNASequence("AAAAAAA");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.addReferenceSet(barcodeSet);
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String result = barcodeMatcher.find(query);
 		assertNull(result);
 	}
@@ -39,14 +39,15 @@ public class BarcodeMatcherTests {
 	@Test
 	public void matchDiff1(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-
+		String label = "Q22";
 		DNASequence query = new DNASequence("ATCGATG");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
 		barcodeMatcher.setMaxHammingDistance(1);
-		barcodeMatcher.addReferenceSet(barcodeSet);
+		
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String result = barcodeMatcher.find(query);
-		assertEquals(result, barcodeSet);
+		assertEquals(label, result);
 	}
 	
 	@Test
@@ -54,8 +55,9 @@ public class BarcodeMatcherTests {
 		thrown.expect(IllegalArgumentException.class);
 		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG:A";
+		String label = "Q22";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.addReferenceSet(barcodeSet);
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		fail("Invalid barcode set was accepted");
 	}
 	
@@ -68,7 +70,7 @@ public class BarcodeMatcherTests {
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 			String result;
 			// #25
-			String expected = "CTTCCGA:GAAGGTC:TCCTTAG:AGGAACT";
+			String expected = "Q25"; //CTTCCGA:GAAGGTC:TCCTTAG:AGGAACT
 			
 			DNASequence query1 = new DNASequence("GAAGGTC");
 			result = barcodeMatcher.find(query1);
@@ -82,9 +84,11 @@ public class BarcodeMatcherTests {
 			result = barcodeMatcher.find(query2);
 			assertEquals(expected, result);
 			
+			/*
 			DNASequence queryInteractive = new DNASequence("ACCTTGT");
 			result = barcodeMatcher.find(queryInteractive);
 			System.out.println(result);
+			*/
 		}
 		catch(IOException e){
 			fail(e.toString());

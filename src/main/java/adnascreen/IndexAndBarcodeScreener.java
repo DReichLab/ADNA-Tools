@@ -2,6 +2,7 @@ package adnascreen;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ public class IndexAndBarcodeScreener {
 			System.exit(1);
 		}
 
+		FileWriter [] fileOutputs = new FileWriter[numOutputFiles];;
 		try(
 				FileInputStream r1File = new FileInputStream(args[3]);
 				FileInputStream r2File = new FileInputStream(args[4]);
@@ -42,10 +44,19 @@ public class IndexAndBarcodeScreener {
 				FastqReader i1Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(i1File))));
 				FastqReader i2Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(i2File))));
 				){
+			// prepare output files for multiple parallel processing jobs downstream
+			// for load balancing purposes, these are not demultiplexed
+			String outputFilenameRoot = args[7];
+			for(int i = 0; i < numOutputFiles; i++){
+				// start counting from 1 for filenames
+				String outputFilename = outputFilenameRoot + String.format("_%03d", i + 1);
+				fileOutputs[i] = new FileWriter(outputFilename);
+			}
 			
-			int pairedReadCount = 0;
+			int pairedReadInputCount = 0;
+			int pairedReadOutputCount = 0;
 			while(r1Reader.hasNext() && r2Reader.hasNext() && i1Reader.hasNext() && i2Reader.hasNext()){
-				pairedReadCount++;
+				pairedReadInputCount++;
 				
 				Read r1 = new Read(r1Reader.next());
 				Read r2 = new Read(r2Reader.next());
@@ -55,17 +66,27 @@ public class IndexAndBarcodeScreener {
 				PairedRead merged = PairedRead.mergePairedSequences(r1, r2, i1, i2, 
 						i5Indices, i7Indices, barcodes, maxPenalty, minOverlap, minMergedLength);
 				if(merged != null){
-					System.out.println(merged.toString());
 					// TODO histogram of length distribution
 					// separate into different files
+					fileOutputs[pairedReadOutputCount % numOutputFiles].write(merged.toString());
+					pairedReadOutputCount++;
 				}
 			}
 			// output map statistics
-			System.err.println("Number of paired reads: " + pairedReadCount);
+			System.err.println("Number of paired reads: " + pairedReadInputCount);
 			for(IndexAndBarcodeKey key : SampleCounter.keySet()){
 				System.err.print(key);
 				System.err.print('\t');
 				System.err.println(SampleCounter.get(key).intValue());
+			}
+		} catch(IOException e){
+			System.err.println(e);
+			System.exit(1);
+		} finally {
+			for(int i = 0; i < numOutputFiles; i++){
+				if(fileOutputs[i] != null){
+					fileOutputs[i].close();
+				}
 			}
 		}
 	}
