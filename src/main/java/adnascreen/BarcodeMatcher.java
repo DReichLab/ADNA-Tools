@@ -6,13 +6,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Find a best match for a query within a specified tolerance (maximum Hamming distance)
  * within a known reference set.  
  * All barcodes within a set are considered equivalent. 
- * When searching, we return a string representing the entire set. 
+ * When searching, we return a string label representing the entire set. 
  * Possible future improvements:
  * - comparison based on probability rather than Hamming distance
  * @author mmah
@@ -20,13 +23,15 @@ import java.util.Map;
  */
 public class BarcodeMatcher {
 	private Map<DNASequence, String> referenceBarcodeToLabel;
-	private Map<DNASequence, String> cache;
+	private Map<DNASequence, Optional<String> >cache;
+	private Set<String> labels;
 	private int maxHammingDistance;
 	private int barcodeLength = -1;
 	
 	public BarcodeMatcher(){
 		referenceBarcodeToLabel = new HashMap<DNASequence, String>();
-		cache = new HashMap<DNASequence, String>();
+		cache = new HashMap<DNASequence, Optional<String> >();
+		labels = new HashSet<String>();
 	}
 	
 	public BarcodeMatcher(String filename, int maxHammingDistance) throws IOException{
@@ -61,10 +66,22 @@ public class BarcodeMatcher {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param barcodeSetString colon-delimited set of DNA barcode strings
+	 * @param label unique descriptor for set
+	 * @param clearCaches When adding multiple references sets, this should be set to false, 
+	 * then cache should be called manually. 
+	 */
 	private void addReferenceSet(String barcodeSetString, String label, boolean clearCaches){
 		String [] barcodeStrings = barcodeSetString.split(":");
 		// check that barcodes are of the same length
 		if(barcodeStrings.length > 0){
+			// enforce unique labels
+			if(labels.contains(label))
+				throw new IllegalArgumentException("labels must be unique");
+			labels.add(label);
+			// add reference sets for this label
 			for(String barcode : barcodeStrings){
 				if(barcodeLength == -1) // set initial length once
 					barcodeLength = barcode.length();
@@ -79,6 +96,11 @@ public class BarcodeMatcher {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param barcodeSetString colon-delimited set of DNA barcode strings
+	 * @param label unique descriptor for set
+	 */
 	public void addReferenceSet(String barcodeSetString, String label){
 		addReferenceSet(barcodeSetString, label, true);
 	}
@@ -86,17 +108,22 @@ public class BarcodeMatcher {
 	private void seedCache(){
 		for(DNASequence barcode : referenceBarcodeToLabel.keySet()){
 			String label = referenceBarcodeToLabel.get(barcode);
-			cache.put(barcode, label);
+			cache.put(barcode, Optional.of(label));
 		}
 	}
 	
+	/**
+	 * 
+	 * @param query
+	 * @return label matching query within maxHammingDistance, or null if no match
+	 */
 	private String linearSearch(DNASequence query){
-		int minDistance = maxHammingDistance + 1;
+		int bestDistance = maxHammingDistance + 1;
 		String bestLabel = null;
 		for(DNASequence barcode : referenceBarcodeToLabel.keySet()){
 			int distance = query.hammingDistance(barcode);
-			if(distance < minDistance){
-				minDistance = distance;
+			if(distance < bestDistance){
+				bestDistance = distance;
 				bestLabel = referenceBarcodeToLabel.get(barcode);
 				if(distance == 0){
 					return bestLabel;
@@ -106,19 +133,32 @@ public class BarcodeMatcher {
 		return bestLabel;
 	}
 	
+	/**
+	 * 
+	 * @param query
+	 * @return label matching or nearly matching query
+	 */
 	public String find(DNASequence query){
-		String found = null;
+		// use Optional to differentiate between 
+		// 1. query not present in cache
+		// 2. cache knows there is no value for this query
+		Optional<String> found = null;
 		// is value in cache?
 		found = cache.get(query);
 		if(found == null){ // not in cache
 			// perform linear search
-			found = linearSearch(query);
-			// cache value
+			String label = linearSearch(query);
+			found = Optional.ofNullable(label) ;
+			// cache possibly null value
 			cache.put(query, found);
 		}
-		return found;
+		return found.orElse(null);
 	}
 	
+	/**
+	 * This invalidates any cache, so it should be called before inserting reference sets. 
+	 * @param maxHammingDistance maximum Hamming distance allowed for matches
+	 */
 	public void setMaxHammingDistance(int maxHammingDistance){
 		if(maxHammingDistance < 0){
 			throw new IllegalArgumentException();

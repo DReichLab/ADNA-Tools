@@ -94,4 +94,18 @@ public class BarcodeMatcherTests {
 			fail(e.toString());
 		}
 	}
+	
+	@Test
+	public void duplicateLabel(){
+		thrown.expect(IllegalArgumentException.class);
+		
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q22";
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		String barcodeSet2 = "ATCGACC";
+		barcodeMatcher.addReferenceSet(barcodeSet2, label);
+		
+		fail("Label was allowed twice");
+	}
 }

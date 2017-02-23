@@ -20,7 +20,7 @@ import htsjdk.samtools.fastq.FastqReader;
 public class IndexAndBarcodeScreener {
 
 	public static void main(String []args) throws IOException{
-		IndexMatcher i5Indices = null, i7Indices = null;
+		BarcodeMatcher i5Indices = null, i7Indices = null;
 		BarcodeMatcher barcodes = null;
 		Map<IndexAndBarcodeKey, MutableInt> SampleCounter = new HashMap<IndexAndBarcodeKey, MutableInt>();
 		final int maxPenalty = 3;
@@ -29,8 +29,8 @@ public class IndexAndBarcodeScreener {
 		final int numOutputFiles = 25;
 
 		try{
-			i5Indices = new IndexMatcher(args[0], 1);
-			i7Indices = new IndexMatcher(args[1], 1);
+			i5Indices = new BarcodeMatcher(args[0], 1);
+			i7Indices = new BarcodeMatcher(args[1], 1);
 			barcodes = new BarcodeMatcher(args[2], 1);
 		} catch(IOException e){
 			System.exit(1);

@@ -123,7 +123,7 @@ public class Read {
 	 * @param minLength
 	 * @param maxPenalty
 	 * @return index of overlap starting from initial position where penalty crosses threshold, 
-	 * or maximum overlap index if penalty is not reached // TODO why isn't this a boolean?
+	 * or maximum overlap index if penalty is not reached
 	 */
 	public static boolean alignmentAssessment(Read a, Read b, int aOffset, int bOffset, int minLength, int maxPenalty){
 		int penalty = 0;
@@ -143,18 +143,6 @@ public class Read {
 			}
 		}
 		return true;
-	}
-	
-	// TODO the offset between the two sequences may be sufficient to merge
-	// 
-	public static class Alignment{
-		int position;
-		int length;
-		
-		public Alignment(int position, int length){
-			this.position = position;
-			this.length = length;
-		}
 	}
 	
 	public static List<Integer> findBestAlignment(Read a, Read b, int maxPenalty, int minOverlapLength, 
@@ -182,8 +170,6 @@ public class Read {
 			}
 			boolean alignmentAtThisOverlap = alignmentAssessment(a, b, aOffset, bOffset, minOverlapLength, maxPenalty);
 			if(alignmentAtThisOverlap){
-				int overlap = Math.min(a.length() - aOffset, b.length() - bOffset);
-				//Alignment alignment = new Alignment(offset, overlap);
 				alignments.add(offset);
 				if(alignments.size() >= maxPositions){
 					return alignments;

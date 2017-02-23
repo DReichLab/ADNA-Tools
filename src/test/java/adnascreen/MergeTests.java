@@ -70,8 +70,8 @@ public class MergeTests {
 		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
 				"CTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC",
 				"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-		IndexAndBarcodeKey key = new IndexAndBarcodeKey(new DNASequence("AAAAAAA"), new DNASequence("CCCCCCC"),
-				"TGACGCA:ATCGTGC:CAGTATG:GCTACAT", "GTCTCAA:TAGAGCC:ACTCTGG:CGAGATT");
+		IndexAndBarcodeKey key = new IndexAndBarcodeKey("1", "2",
+				"Q1", "Q2");
 		MergedRead p = new MergedRead(r1, key);
 		String s = p.toString();
 		//System.out.println(s);;
@@ -107,9 +107,9 @@ public class MergeTests {
 			String filename = classLoader.getResource("barcodes").getPath();
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 
-			IndexMatcher indexMatcher = new IndexMatcher();
+			BarcodeMatcher indexMatcher = new BarcodeMatcher();
 			DNASequence indexReference = new DNASequence("AAAAAAA");
-			indexMatcher.addReference(indexReference);
+			indexMatcher.addReferenceSet(indexReference.toString(), "1");
 			Read indexRead5 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 1:N:0:0", "AAAAAAA", "EEEEEEE");
 			Read indexRead7 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 2:N:0:0", "AAAAAAA", "EEEEEEE");
 			/* splitting this single read into two
@@ -154,9 +154,9 @@ public class MergeTests {
 			String filename = classLoader.getResource("barcodes").getPath();
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 
-			IndexMatcher indexMatcher = new IndexMatcher();
+			BarcodeMatcher indexMatcher = new BarcodeMatcher();
 			DNASequence indexReference = new DNASequence("AAAAAAA");
-			indexMatcher.addReference(indexReference);
+			indexMatcher.addReferenceSet(indexReference.toString(), "1");
 			Read indexRead5 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 1:N:0:0", "AAAAAAA", "EEEEEEE");
 			Read indexRead7 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 2:N:0:0", "AAAAAAA", "EEEEEEE");
 			/* splitting this single read into two

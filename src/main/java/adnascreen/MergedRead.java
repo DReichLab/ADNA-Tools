@@ -53,7 +53,7 @@ public class MergedRead extends Read{
 	 * @return merged sequence, or null if failure to merge
 	 */
 	public static MergedRead mergePairedSequences(Read r1, Read r2, Read i1, Read i2, 
-			IndexMatcher i5Indices, IndexMatcher i7Indices, BarcodeMatcher barcodes, 
+			BarcodeMatcher i5Indices, BarcodeMatcher i7Indices, BarcodeMatcher barcodes, 
 			int maxPenalty, int minOverlap, int minMergedLength){
 		// check for metadata consistency
 		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader())
@@ -69,15 +69,15 @@ public class MergedRead extends Read{
 		DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, 7);
 		
 		// match indices and barcodes against the known sets to see whether we should process this read pair
-		DNASequence i5Index = i5Indices.find(i5IndexRaw);
-		DNASequence i7Index = i7Indices.find(i7IndexRaw);
-		String p5BarcodeSet = barcodes.find(p5BarcodeRaw);
-		String p7BarcodeSet = barcodes.find(p7BarcodeRaw);
+		String i5IndexLabel = i5Indices.find(i5IndexRaw);
+		String i7IndexLabel = i7Indices.find(i7IndexRaw);
+		String p5BarcodeLabel = barcodes.find(p5BarcodeRaw);
+		String p7BarcodeLabel = barcodes.find(p7BarcodeRaw);
 		
-		if(i5Index != null 
-				&& i7Index != null
-				&& p5BarcodeSet != null
-				&& p7BarcodeSet != null){ // process this read pair, which may match an experiment
+		if(i5IndexLabel != null 
+				&& i7IndexLabel != null
+				&& p5BarcodeLabel != null
+				&& p7BarcodeLabel != null){ // process this read pair, which may match an experiment
 			// trim leading barcodes and trailing N's
 			Read trimmedR1 = r1.subsequence(barcodes.getBarcodeLength(), r1.length()).trimTrailingUnknownBases();
 			Read trimmedR2 = r2.subsequence(barcodes.getBarcodeLength(), r2.length()).trimTrailingUnknownBases();
@@ -88,7 +88,7 @@ public class MergedRead extends Read{
 			if(alignments.size() == 1){ // unambiguous merge
 				// merge reads
 				Read merged = mergeReads(trimmedR1, reverseComplementR2, alignments.get(0));
-				IndexAndBarcodeKey key = new IndexAndBarcodeKey(i5Index, i7Index, p5BarcodeSet, p7BarcodeSet);
+				IndexAndBarcodeKey key = new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
 				MergedRead pairedRead = new MergedRead(merged, key);
 				return pairedRead;
 			}
