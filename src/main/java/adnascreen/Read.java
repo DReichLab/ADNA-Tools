@@ -5,6 +5,11 @@ import java.util.List;
 
 import htsjdk.samtools.fastq.FastqRecord;
 
+/**
+ * 
+ * @author Matthew Mah
+ *
+ */
 public class Read {
 	private FASTQHeader header; // should probably not be a FASTQHeader, but something more generic
 	private DNASequence dna;

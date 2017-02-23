@@ -35,7 +35,6 @@ public class MergeTests {
 		assertEquals(1, alignments.size());
 		int offset = alignments.get(0);
 		assertEquals(0, offset);
-		//assertEquals(r1.length(), alignment.length);
 	}
 	
 	@Test
@@ -47,10 +46,8 @@ public class MergeTests {
 		
 		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, minResultLength, maxPositions);
 		assertEquals(1, alignments.size());
-//		Read.Alignment alignment = alignments.get(0);
 		int offset = alignments.get(0);
 		assertEquals(0, offset);
-//		assertEquals(r1.length(), alignment.length);
 	}
 	
 	@Test
@@ -69,13 +66,13 @@ public class MergeTests {
 	}
 	
 	@Test
-	public void PairedReadToString(){
+	public void MergedReadToString(){
 		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
 				"CTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC",
 				"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
 		IndexAndBarcodeKey key = new IndexAndBarcodeKey(new DNASequence("AAAAAAA"), new DNASequence("CCCCCCC"),
 				"TGACGCA:ATCGTGC:CAGTATG:GCTACAT", "GTCTCAA:TAGAGCC:ACTCTGG:CGAGATT");
-		PairedRead p = new PairedRead(r1, key);
+		MergedRead p = new MergedRead(r1, key);
 		String s = p.toString();
 		//System.out.println(s);;
 		// TODO
@@ -87,7 +84,7 @@ public class MergeTests {
 		char b2 = 'A';
 		int quality1 = 30;
 		int quality2 = 40;
-		PairedRead.BaseWithQuality result = PairedRead.mergeBases(50, b1, quality1, b2, quality2);
+		MergedRead.BaseWithQuality result = MergedRead.mergeBases(50, b1, quality1, b2, quality2);
 		assertEquals(b2, result.base);
 		assertEquals(quality2, result.quality);
 	}
@@ -98,7 +95,7 @@ public class MergeTests {
 		char b2 = 'C';
 		int quality1 = 30;
 		int quality2 = 40;
-		PairedRead.BaseWithQuality result = PairedRead.mergeBases(50, b1, quality1, b2, quality2);
+		MergedRead.BaseWithQuality result = MergedRead.mergeBases(50, b1, quality1, b2, quality2);
 		assertEquals(b2, result.base);
 		assertEquals(quality2 - quality1, result.quality);
 	}
@@ -139,7 +136,7 @@ public class MergeTests {
 					"GTCTCAAGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCAAGTTAATTCTCCTGCCTC",
 					"BBBBBBBEEEEEEAEEEEEEEEEEEEEEEEEEEAAEEEEEEEEEEEAEEEEEEEE/EEE");
 			
-			PairedRead merged = PairedRead.mergePairedSequences(r1, r2, indexRead5, indexRead7, 
+			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, indexRead5, indexRead7, 
 					indexMatcher, indexMatcher, barcodeMatcher, maxPenalty, minOverlapLength, minResultLength);
 			
 			assertEquals(expectedDNA, merged.getDNASequence());
@@ -186,7 +183,7 @@ public class MergeTests {
 					"GTCTCAAGTGTGCTCTTCCGATCTCAAGTTAATTCTCCTGCCTCAGCCTCCTGAGTAGCTG",
 					"BBBBBBBEEEEEEEEEEEAAEEEEEEEEEEEAEEEEEEEE/EEEEEEEAEEEAAEEEAEEE");
 			
-			PairedRead merged = PairedRead.mergePairedSequences(r1, r2, indexRead5, indexRead7, 
+			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, indexRead5, indexRead7, 
 					indexMatcher, indexMatcher, barcodeMatcher, maxPenalty, minOverlapLength, minResultLength);
 			
 			assertEquals(expectedDNA, merged.getDNASequence());

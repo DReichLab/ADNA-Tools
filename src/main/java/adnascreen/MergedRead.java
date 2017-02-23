@@ -9,13 +9,13 @@ import java.util.List;
  * @author Matthew Mah
  *
  */
-public class PairedRead extends Read{
+public class MergedRead extends Read{
 	private IndexAndBarcodeKey key;
 	
 	public static final int maxPassingAlignmentsToConsider = 4;
 	public static final int maxQuality = 50;
 
-	public PairedRead(Read r, IndexAndBarcodeKey key){
+	public MergedRead(Read r, IndexAndBarcodeKey key){
 		super(r);
 		this.key = key;
 	}
@@ -24,6 +24,8 @@ public class PairedRead extends Read{
 		return key;
 	}
 	
+	// TODO merged read with barcode and indices in the header should include the capability
+	// to convert to String and back again
 	/**
 	 * Returns a string in FASTQ format with barcode and index key included
 	 */
@@ -37,19 +39,20 @@ public class PairedRead extends Read{
 	}
 	
 	/**
-	 * Take a forward and reverse read pair, and 
-	 * @param r1
-	 * @param r2
-	 * @param i1
-	 * @param i2
-	 * @param i5Indices
-	 * @param i7Indices
-	 * @param barcodes
-	 * @param minOverlap
-	 * @param minMergedLength The resulting merged sequence must be 
+	 * Take a forward and reverse read pair, and merge them if they
+	 * have a minimum overlap and resulting length. 
+	 * @param r1 forward read
+	 * @param r2 reverse read
+	 * @param i1 index read for i7
+	 * @param i2 index read for i5
+	 * @param i5Indices i5 index must be found here to merge
+	 * @param i7Indices i7 index must be found here to merge
+	 * @param barcodes Inline barcodes must be found here to merge
+	 * @param minOverlap Overlap between the forward and reverse reads must be at least this length
+	 * @param minMergedLength The resulting merged sequence must be at least this length 
 	 * @return merged sequence, or null if failure to merge
 	 */
-	public static PairedRead mergePairedSequences(Read r1, Read r2, Read i1, Read i2, 
+	public static MergedRead mergePairedSequences(Read r1, Read r2, Read i1, Read i2, 
 			IndexMatcher i5Indices, IndexMatcher i7Indices, BarcodeMatcher barcodes, 
 			int maxPenalty, int minOverlap, int minMergedLength){
 		// check for metadata consistency
@@ -86,13 +89,29 @@ public class PairedRead extends Read{
 				// merge reads
 				Read merged = mergeReads(trimmedR1, reverseComplementR2, alignments.get(0));
 				IndexAndBarcodeKey key = new IndexAndBarcodeKey(i5Index, i7Index, p5BarcodeSet, p7BarcodeSet);
-				PairedRead pairedRead = new PairedRead(merged, key);
+				MergedRead pairedRead = new MergedRead(merged, key);
 				return pairedRead;
 			}
 		}
 		return null;
 	}
 	
+	/**
+	 * Merge two reads using the alignment defined by the offset parameter. 
+	 * Reads are merged directly; no reverse complement is applied. 
+	 * Trimming of adapters is implicit; the merge ends with the 
+	 * reverse-read end (beginning of non-reverse complement).  
+	 * @param a
+	 * @param b
+	 * @param offset (a_offset - b_offset)
+	 * positive offset:
+	 * aaaaaaaaaaaaa
+	 *        bbbbbbbbbbbb
+	 * negative offset:
+	 *        aaaaaaaaaaaa
+	 * bbbbbbbbbbbbb
+	 * @return
+	 */
 	static Read mergeReads(Read a, Read b, int offset){
 		int resultLength = b.length() + offset;
 		StringBuilder dna = new StringBuilder(resultLength);

@@ -24,7 +24,7 @@ public class IndexAndBarcodeScreener {
 		BarcodeMatcher barcodes = null;
 		Map<IndexAndBarcodeKey, MutableInt> SampleCounter = new HashMap<IndexAndBarcodeKey, MutableInt>();
 		final int maxPenalty = 3;
-		final int minOverlap = 10;
+		final int minOverlap = 15;
 		final int minMergedLength = 30;
 		final int numOutputFiles = 25;
 
@@ -67,7 +67,7 @@ public class IndexAndBarcodeScreener {
 				Read i1 = new Read(i1Reader.next());
 				Read i2 = new Read(i2Reader.next());
 				
-				PairedRead merged = PairedRead.mergePairedSequences(r1, r2, i1, i2, 
+				MergedRead merged = MergedRead.mergePairedSequences(r1, r2, i1, i2, 
 						i5Indices, i7Indices, barcodes, maxPenalty, minOverlap, minMergedLength);
 				if(merged != null){
 					// TODO histogram of length distribution

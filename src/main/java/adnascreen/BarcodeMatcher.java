@@ -9,9 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class is similar to the IndexMatcher, but for sets of barcodes. 
+ * Find a best match for a query within a specified tolerance (maximum Hamming distance)
+ * within a known reference set.  
  * All barcodes within a set are considered equivalent. 
  * When searching, we return a string representing the entire set. 
+ * Possible future improvements:
+ * - comparison based on probability rather than Hamming distance
  * @author mmah
  *
  */

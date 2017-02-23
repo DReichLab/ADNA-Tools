@@ -1,5 +1,11 @@
 package adnascreen;
 
+/**
+ * Each base-pair has an associated quality. 
+ * Quality is stored as a Q-Score [0-40]. 
+ * @author Matthew Mah
+ *
+ */
 public class QualitySequence {
 	private int[] qScore;
 	
