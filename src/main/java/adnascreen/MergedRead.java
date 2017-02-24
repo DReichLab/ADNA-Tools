@@ -14,6 +14,7 @@ public class MergedRead extends Read{
 	
 	public static final int maxPassingAlignmentsToConsider = 4;
 	public static final int maxQuality = 50;
+	public static final char KEY_SEPARATOR = ';';
 
 	public MergedRead(Read r, IndexAndBarcodeKey key){
 		super(r);
@@ -26,15 +27,22 @@ public class MergedRead extends Read{
 	
 	// TODO merged read with barcode and indices in the header should include the capability
 	// to convert to String and back again
-	/**
+	/*
+	 * To facilitate use with BWA, we include the key string representation with the initial
+	 * FASTQ read group. The key representation will be copied to the SAM alignment QNAME field. 
+	 * 
+	 * For example:
+	 * 
+	 * TODO
+	 * 
 	 * Returns a string in FASTQ format with barcode and index key included
 	 */
 	public String toString(){
 		StringBuilder builder = new StringBuilder();
-		builder.append(super.toString());
-		int firstNewlineIndex = builder.indexOf("\n");
-		builder.insert(firstNewlineIndex, key.toString());
-		builder.insert(firstNewlineIndex, " ");
+		builder.append(super.toString()); // FASTQ format
+		int firstSpaceIndex = builder.indexOf(" ");
+		builder.insert(firstSpaceIndex, key.toString());
+		builder.insert(firstSpaceIndex, KEY_SEPARATOR);
 		return builder.toString();
 	}
 	

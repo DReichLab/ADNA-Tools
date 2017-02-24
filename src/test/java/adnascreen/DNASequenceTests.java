@@ -28,7 +28,7 @@ public class DNASequenceTests {
 	public void exampleReverseComplement(){
 		DNASequence A = new DNASequence("ACTGCGTCTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC");
 		DNASequence r = A.reverseComplement();
-		System.out.println(r);
+		//System.out.println(r);
 	}
 	
 	@Test

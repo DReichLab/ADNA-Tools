@@ -4,6 +4,9 @@ public class IndexAndBarcodeKey {
 	// labels
 	private String i5, i7;
 	private String p5, p7;
+
+	// - is chosen because it is a natural character in filenames 
+	public static final char FIELD_SEPARATOR = '-'; // this needs to be distinct from MergedRead.KEY_SEPARATOR
 	
 	public IndexAndBarcodeKey(String i5, String i7, String p5, String p7){
 		this.i5 = i5;
@@ -12,8 +15,9 @@ public class IndexAndBarcodeKey {
 		this.p7 = p7;
 	}
 	
-	public IndexAndBarcodeKey(String commaDelimited){
-		String [] fields = commaDelimited.split(",");
+	public IndexAndBarcodeKey(String keyString){
+		String regexPattern = String.valueOf(FIELD_SEPARATOR);
+		String [] fields = keyString.split(regexPattern);
 		i5 = fields[0];
 		i7 = fields[1];
 		p5 = fields[2];
@@ -26,11 +30,11 @@ public class IndexAndBarcodeKey {
 	public String toString(){
 		StringBuilder b = new StringBuilder();
 		b.append(i5);
-		b.append(',');
+		b.append(FIELD_SEPARATOR);
 		b.append(i7);
-		b.append(',');
+		b.append(FIELD_SEPARATOR);
 		b.append(p5);
-		b.append(',');
+		b.append(FIELD_SEPARATOR);
 		b.append(p7);
 		return b.toString();
 	}
