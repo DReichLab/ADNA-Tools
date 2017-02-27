@@ -47,8 +47,8 @@ public class MergedRead extends Read{
 	}
 	
 	/**
-	 * Take a forward and reverse read pair, and merge them if they
-	 * have a minimum overlap and resulting length. 
+	 * Find the key of 4-tuple of indices and barcodes for this paired read with index reads.  
+	 * Matching is performed using the constraints defined in the argument BarcodeMatchers.
 	 * @param r1 forward read
 	 * @param r2 reverse read
 	 * @param i1 index read for i7
@@ -56,50 +56,69 @@ public class MergedRead extends Read{
 	 * @param i5Indices i5 index must be found here to merge
 	 * @param i7Indices i7 index must be found here to merge
 	 * @param barcodes Inline barcodes must be found here to merge
-	 * @param minOverlap Overlap between the forward and reverse reads must be at least this length
-	 * @param minMergedLength The resulting merged sequence must be at least this length 
-	 * @return merged sequence, or null if failure to merge
+	 * @return key of 4-tuple of indices and barcodes, or null if all four of these are not found. 
 	 */
-	public static MergedRead mergePairedSequences(Read r1, Read r2, Read i1, Read i2, 
-			BarcodeMatcher i5Indices, BarcodeMatcher i7Indices, BarcodeMatcher barcodes, 
-			int maxPenalty, int minOverlap, int minMergedLength){
+	public static IndexAndBarcodeKey findExperimentKey(Read r1, Read r2, Read i1, Read i2, 
+			BarcodeMatcher i5Indices, BarcodeMatcher i7Indices, BarcodeMatcher barcodes){
 		// check for metadata consistency
 		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader())
 				|| !r1.getFASTQHeader().equalsExceptRead(i1.getFASTQHeader())
 				|| !r1.getFASTQHeader().equalsExceptRead(i2.getFASTQHeader()))
 			throw new IllegalArgumentException("FASTQ metadata mismatch");
-		
+
 		// Index 1 is i7, Index 2 is i5
 		DNASequence i7IndexRaw = i1.getDNASequence();
 		DNASequence i5IndexRaw = i2.getDNASequence();
-		
-		DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, 7);
-		DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, 7);
-		
+
+		int barcodeLength = barcodes.getBarcodeLength();
+		DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, barcodeLength);
+		DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, barcodeLength);
+
 		// match indices and barcodes against the known sets to see whether we should process this read pair
 		String i5IndexLabel = i5Indices.find(i5IndexRaw);
 		String i7IndexLabel = i7Indices.find(i7IndexRaw);
 		String p5BarcodeLabel = barcodes.find(p5BarcodeRaw);
 		String p7BarcodeLabel = barcodes.find(p7BarcodeRaw);
-		
+
 		if(i5IndexLabel != null 
 				&& i7IndexLabel != null
 				&& p5BarcodeLabel != null
 				&& p7BarcodeLabel != null){ // process this read pair, which may match an experiment
-			// trim leading barcodes and trailing N's
-			Read trimmedR1 = r1.subsequence(barcodes.getBarcodeLength(), r1.length()).trimTrailingUnknownBases();
-			Read trimmedR2 = r2.subsequence(barcodes.getBarcodeLength(), r2.length()).trimTrailingUnknownBases();
-			// find best alignment of forward read and reverse-complemented reverse read
-			Read reverseComplementR2 = trimmedR2.reverseComplement();
-			List<Integer> alignments = Read.findBestAlignment(trimmedR1, reverseComplementR2, maxPenalty, 
-					minOverlap, minMergedLength, maxPassingAlignmentsToConsider);
-			if(alignments.size() == 1){ // unambiguous merge
-				// merge reads
-				Read merged = mergeReads(trimmedR1, reverseComplementR2, alignments.get(0));
-				IndexAndBarcodeKey key = new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
-				MergedRead pairedRead = new MergedRead(merged, key);
-				return pairedRead;
-			}
+			return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
+		}		
+		return null;
+	}
+
+	/**
+	 * Take a forward and reverse read pair, and merge them if they
+	 * have a minimum overlap and resulting length. 
+	 * @param r1 forward read
+	 * @param r2 reverse read
+	 * @param key 4-tuple of indices and barcodes
+	 * @param barcodeLength number of base-pairs in a barcode
+	 * @param maxPenalty
+	 * @param minOverlap Overlap between the forward and reverse reads must be at least this length
+	 * @param minMergedLength The resulting merged sequence must be at least this length
+	 * @return merged sequence, or null if failure to merge
+	 */
+	public static MergedRead mergePairedSequences(Read r1, Read r2, IndexAndBarcodeKey key, 
+			int barcodeLength, int maxPenalty, int minOverlap, int minMergedLength){
+		// check for metadata consistency
+		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader() ) )
+			throw new IllegalArgumentException("FASTQ metadata mismatch");
+
+		// trim leading barcodes and trailing N's
+		Read trimmedR1 = r1.subsequence(barcodeLength, r1.length()).trimTrailingUnknownBases();
+		Read trimmedR2 = r2.subsequence(barcodeLength, r2.length()).trimTrailingUnknownBases();
+		// find best alignment of forward read and reverse-complemented reverse read
+		Read reverseComplementR2 = trimmedR2.reverseComplement();
+		List<Integer> alignments = Read.findBestAlignment(trimmedR1, reverseComplementR2, maxPenalty, 
+				minOverlap, minMergedLength, maxPassingAlignmentsToConsider);
+		if(alignments.size() == 1){ // unambiguous merge
+			// merge reads
+			Read merged = mergeReads(trimmedR1, reverseComplementR2, alignments.get(0));
+			MergedRead pairedRead = new MergedRead(merged, key);
+			return pairedRead;
 		}
 		return null;
 	}

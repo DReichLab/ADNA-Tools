@@ -136,8 +136,10 @@ public class MergeTests {
 					"GTCTCAAGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCAAGTTAATTCTCCTGCCTC",
 					"BBBBBBBEEEEEEAEEEEEEEEEEEEEEEEEEEAAEEEEEEEEEEEAEEEEEEEE/EEE");
 			
-			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, indexRead5, indexRead7, 
-					indexMatcher, indexMatcher, barcodeMatcher, maxPenalty, minOverlapLength, minResultLength);
+			IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, indexRead5, indexRead7, 
+					indexMatcher, indexMatcher, barcodeMatcher);
+			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, key, 
+					barcodeMatcher.getBarcodeLength(), maxPenalty, minOverlapLength, minResultLength);
 			
 			assertEquals(expectedDNA, merged.getDNASequence());
 			assertEquals(expectedQuality, merged.getQualitySequence());
@@ -183,8 +185,10 @@ public class MergeTests {
 					"GTCTCAAGTGTGCTCTTCCGATCTCAAGTTAATTCTCCTGCCTCAGCCTCCTGAGTAGCTG",
 					"BBBBBBBEEEEEEEEEEEAAEEEEEEEEEEEAEEEEEEEE/EEEEEEEAEEEAAEEEAEEE");
 			
-			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, indexRead5, indexRead7, 
-					indexMatcher, indexMatcher, barcodeMatcher, maxPenalty, minOverlapLength, minResultLength);
+			IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, indexRead7, indexRead5, 
+					indexMatcher, indexMatcher, barcodeMatcher);
+			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, key, 
+					barcodeMatcher.getBarcodeLength(), maxPenalty, minOverlapLength, minResultLength);
 			
 			assertEquals(expectedDNA, merged.getDNASequence());
 			assertEquals(expectedQuality, merged.getQualitySequence());

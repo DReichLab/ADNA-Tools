@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,11 +19,15 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import htsjdk.samtools.fastq.FastqReader;
 
 public class IndexAndBarcodeScreener {
+	
+	public static final String RAW = "raw";
+	public static final String MERGED = "merged";
 
 	public static void main(String []args) throws IOException{
 		BarcodeMatcher i5Indices = null, i7Indices = null;
 		BarcodeMatcher barcodes = null;
-		Map<IndexAndBarcodeKey, MutableInt> SampleCounter = new HashMap<IndexAndBarcodeKey, MutableInt>();
+		// We keep statistics for each 4-tuple of indices and barcodes
+		Map<IndexAndBarcodeKey, Map<String, MutableInt>> sampleSetCounter = new HashMap<IndexAndBarcodeKey, Map<String, MutableInt>>();
 		final int maxPenalty = 3;
 		final int minOverlap = 15;
 		final int minMergedLength = 30;
@@ -67,21 +72,49 @@ public class IndexAndBarcodeScreener {
 				Read i1 = new Read(i1Reader.next());
 				Read i2 = new Read(i2Reader.next());
 				
-				MergedRead merged = MergedRead.mergePairedSequences(r1, r2, i1, i2, 
-						i5Indices, i7Indices, barcodes, maxPenalty, minOverlap, minMergedLength);
+				IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1, i2, 
+						i5Indices, i7Indices, barcodes);
+				MergedRead merged = (key != null) ? merged = MergedRead.mergePairedSequences(r1, r2, key, 
+						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength) : null;
+				// statistics recording
+				Map<String, MutableInt> sampleCounter = sampleSetCounter.get(key);
+				if(sampleCounter == null){
+					sampleCounter = new HashMap<String, MutableInt>();
+					sampleSetCounter.put(key, sampleCounter);
+				}
+				MutableInt rawCount = sampleCounter.get(RAW);
+				if(rawCount == null){
+					rawCount = new MutableInt(0);
+					sampleCounter.put(RAW, rawCount);
+				}
+				rawCount.increment();
+				// output to file and more statistics recording
 				if(merged != null){
 					// TODO histogram of length distribution
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
+					MutableInt mergedCount = sampleCounter.get(MERGED);
+					if(mergedCount == null){
+						mergedCount = new MutableInt(0);
+						sampleCounter.put(MERGED, mergedCount);
+					}
+					mergedCount.increment();
 				}
 			}
 			// output map statistics
-			System.err.println("Number of paired reads: " + pairedReadInputCount);
-			for(IndexAndBarcodeKey key : SampleCounter.keySet()){
-				System.err.print(key);
-				System.err.print('\t');
-				System.err.println(SampleCounter.get(key).intValue());
+			PrintStream statisticsOutput = System.err;
+			statisticsOutput.println("Number of paired reads: " + pairedReadInputCount);
+			for(IndexAndBarcodeKey key : sampleSetCounter.keySet()){
+				statisticsOutput.print(key);
+				Map<String, MutableInt> sampleStats = sampleSetCounter.get(key);
+				for(String field : sampleStats.keySet() ){
+					statisticsOutput.print('\t');
+					statisticsOutput.print(field);
+					statisticsOutput.print('\t');
+					statisticsOutput.print(sampleStats.get(field).intValue());
+				}
+				statisticsOutput.print('\n');
 			}
 		} catch(IOException e){
 			System.err.println(e);

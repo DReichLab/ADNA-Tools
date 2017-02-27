@@ -39,19 +39,19 @@ public class IndexAndBarcodeKey {
 		return b.toString();
 	}
 
-	public String getI5() {
+	public String getI5Label() {
 		return i5;
 	}
 
-	public String getI7() {
+	public String getI7Label() {
 		return i7;
 	}
 
-	public String getP5() {
+	public String getP5Label() {
 		return p5;
 	}
 
-	public String getP7() {
+	public String getP7Label() {
 		return p7;
 	}
 
