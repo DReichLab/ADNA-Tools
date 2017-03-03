@@ -15,7 +15,7 @@ public class BarcodeMatcherTests {
 	@Test
 	public void exactMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-		String label = "Q22";
+		String label = "Q1";
 		DNASequence query = new DNASequence("ATCGATT");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
@@ -27,7 +27,7 @@ public class BarcodeMatcherTests {
 	@Test
 	public void noMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-		String label = "Q22";
+		String label = "Q1";
 		DNASequence query = new DNASequence("AAAAAAA");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
@@ -39,7 +39,7 @@ public class BarcodeMatcherTests {
 	@Test
 	public void matchDiff1(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-		String label = "Q22";
+		String label = "Q1";
 		DNASequence query = new DNASequence("ATCGATG");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
@@ -55,7 +55,7 @@ public class BarcodeMatcherTests {
 		thrown.expect(IllegalArgumentException.class);
 		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG:A";
-		String label = "Q22";
+		String label = "Q1";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
 		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		fail("Invalid barcode set was accepted");
@@ -70,7 +70,7 @@ public class BarcodeMatcherTests {
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 			String result;
 			// #25
-			String expected = "Q25"; //CTTCCGA:GAAGGTC:TCCTTAG:AGGAACT
+			String expected = "Q34"; //CTTCCGA:GAAGGTC:TCCTTAG:AGGAACT
 			
 			DNASequence query1 = new DNASequence("GAAGGTC");
 			result = barcodeMatcher.find(query1);
@@ -100,7 +100,7 @@ public class BarcodeMatcherTests {
 		thrown.expect(IllegalArgumentException.class);
 		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
-		String label = "Q22";
+		String label = "Q1";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
 		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String barcodeSet2 = "ATCGACC";
