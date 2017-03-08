@@ -174,6 +174,7 @@ public class CacheTest {
 		}
 	}
 
+	// This turns out to not be a useful test because SAM and BAM files cannot be reopened for writing. 
 	@Test
 	public void samMemoryLeak() throws IOException{
 		ClassLoader classLoader = getClass().getClassLoader();

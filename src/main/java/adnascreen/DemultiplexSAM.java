@@ -2,10 +2,15 @@ package adnascreen;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
@@ -18,16 +23,37 @@ import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 
 public class DemultiplexSAM {
+	public static final String ALIGNED = "aligned";
+	public static final String DEMULTIPLEXED = "demultiplexed";
+	
 	public static void main(String [] args) throws IOException {
-		Cache<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new Cache<IndexAndBarcodeKey, SAMFileWriter>(2000);
+		int numTopSamples = 1000;
+		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
 		
 		SAMFileHeader masterHeader = null;
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
-
-		int openedOutputFiles = 0;
-		long alignmentsProcessed = 0;
+		
+		// read statistics file with top keys
+		// open a SAM/BAM file for each key for demultiplexing its data
+		String statisticsFilename = args[0];
+		File f = new File(statisticsFilename);
+		try(BufferedReader reader = new BufferedReader(new FileReader(f))){
+			Integer.valueOf(reader.readLine());
+			for(int n = 0; n < numTopSamples; n++){
+				String entryLine = reader.readLine();
+				String [] fields = entryLine.split("\t");
+				String keyString = fields[0];
+				IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+				outputFiles.put(key, null); // mark this key for output later
+				// we delay opening SAM/BAM file writer until the SAM/BAM header is available
+				// this is after we have opened the first SAM/BAM input file
+			}
+		}
+		SampleSetsCounter statistics = new SampleSetsCounter(f);
 		// iterate through input files
-		for(String filename : args){
+		
+		String [] samFilenamesToProcess = Arrays.copyOfRange(args, 1, args.length);
+		for(String filename : samFilenamesToProcess){
 			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
 			try(
 					SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
@@ -48,47 +74,41 @@ public class DemultiplexSAM {
 						String readname = record.getReadName();
 						String [] readnameParts = readname.split(String.valueOf(MergedRead.KEY_SEPARATOR));
 						IndexAndBarcodeKey key = new IndexAndBarcodeKey(readnameParts[1]);
-						// remove indices and barcodes from read name
-						//record.setReadName(readnameParts[0]);
-						
-						// find file corresponding to this key
-						SAMFileWriter output = outputFiles.get(key);
-						if(output == null){ // open new file, if none exists for this key
-							String outputFilename = key.toString() + ".sam";
-							//BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename, true));
-							File outputFile = new File(outputFilename);
-							openedOutputFiles++;
-							output = outputFileFactory.makeSAMWriter(header, true, outputFile);
-							//output = outputFileFactory.makeBAMWriter(header, true, outputFile);
-							outputFiles.put(key, output); // 
+
+						// record statistics
+						// count of demultiplexed reads is for checking consistency
+						statistics.increment(key, DEMULTIPLEXED);
+						if(!record.getReadUnmappedFlag()){ // read is mapped
+							statistics.increment(key, ALIGNED);
 						}
-						// write out to alignment to file
-						output.addAlignment(record);
+						
+						// write only to open files for top keys
+						if(outputFiles.containsKey(key)){
+							// find file corresponding to this key
+							SAMFileWriter output = outputFiles.get(key);
+							if(output == null){ // open new file, if none exists for this key
+								String outputFilename = key.toString() + ".sam";
+								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
+								//File outputFile = new File(outputFilename);
+								output = outputFileFactory.makeSAMWriter(header, true, outputFile);
+								//output = outputFileFactory.makeBAMWriter(header, true, outputFile);
+								outputFiles.put(key, output); // 
+							}
+							// write alignment to file
+							output.addAlignment(record);
+						}
 					} catch (SAMFormatException e){
 						System.err.println(e);
 						// ignore this record and continue to the next
 					} catch (Exception e){
 						System.err.println(e);
-						System.err.println("Opened output files: " + openedOutputFiles);
 					}
-					alignmentsProcessed++;
-					/*
-					if(alignmentsProcessed % 1000 == 0){
-						System.err.print(alignmentsProcessed);
-						System.err.print('\t');
-						System.err.print(outputFiles.getHits());
-						System.err.print('\t');
-						System.err.print(outputFiles.getMisses());
-						System.err.print('\t');
-						System.err.print(outputFiles.getForcedCloses());
-						System.err.print('\n');
-						
-					}
-					*/
 				}
 			}
 		}
+		System.out.println(statistics.toStringSorted(ALIGNED));
 		// cleanup, close all files
-		outputFiles.close();
+		for(SAMFileWriter writer : outputFiles.values())
+			writer.close();
 	}
 }

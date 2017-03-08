@@ -9,12 +9,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
-import org.apache.commons.lang3.mutable.MutableInt;
 
 import htsjdk.samtools.fastq.FastqReader;
 
@@ -27,7 +23,7 @@ public class IndexAndBarcodeScreener {
 		BarcodeMatcher i5Indices = null, i7Indices = null;
 		BarcodeMatcher barcodes = null;
 		// We keep statistics for each 4-tuple of indices and barcodes
-		Map<IndexAndBarcodeKey, Map<String, MutableInt>> sampleSetCounter = new HashMap<IndexAndBarcodeKey, Map<String, MutableInt>>();
+		SampleSetsCounter sampleSetCounter = new SampleSetsCounter();
 		final int maxPenalty = 3;
 		final int minOverlap = 15;
 		final int minMergedLength = 30;
@@ -62,11 +58,8 @@ public class IndexAndBarcodeScreener {
 				fileOutputs[i] = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)))));
 			}
 			
-			int pairedReadInputCount = 0;
 			int pairedReadOutputCount = 0;
 			while(r1Reader.hasNext() && r2Reader.hasNext() && i1Reader.hasNext() && i2Reader.hasNext()){
-				pairedReadInputCount++;
-				
 				Read r1 = new Read(r1Reader.next());
 				Read r2 = new Read(r2Reader.next());
 				Read i1 = new Read(i1Reader.next());
@@ -74,48 +67,25 @@ public class IndexAndBarcodeScreener {
 				
 				IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1, i2, 
 						i5Indices, i7Indices, barcodes);
-				MergedRead merged = (key != null) ? merged = MergedRead.mergePairedSequences(r1, r2, key, 
-						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength) : null;
-				// statistics recording
-				Map<String, MutableInt> sampleCounter = sampleSetCounter.get(key);
-				if(sampleCounter == null){
-					sampleCounter = new HashMap<String, MutableInt>();
-					sampleSetCounter.put(key, sampleCounter);
+				sampleSetCounter.increment(); // statistics recording
+				MergedRead merged = null;
+				if(key != null){
+					sampleSetCounter.increment(key, RAW);
+					merged = MergedRead.mergePairedSequences(r1, r2, key, 
+						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength);
 				}
-				MutableInt rawCount = sampleCounter.get(RAW);
-				if(rawCount == null){
-					rawCount = new MutableInt(0);
-					sampleCounter.put(RAW, rawCount);
-				}
-				rawCount.increment();
 				// output to file and more statistics recording
 				if(merged != null){
 					// TODO histogram of length distribution
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
-					MutableInt mergedCount = sampleCounter.get(MERGED);
-					if(mergedCount == null){
-						mergedCount = new MutableInt(0);
-						sampleCounter.put(MERGED, mergedCount);
-					}
-					mergedCount.increment();
+					sampleSetCounter.increment(key, MERGED);
 				}
 			}
 			// output map statistics
-			PrintStream statisticsOutput = System.err;
-			statisticsOutput.println("Number of paired reads: " + pairedReadInputCount);
-			for(IndexAndBarcodeKey key : sampleSetCounter.keySet()){
-				statisticsOutput.print(key);
-				Map<String, MutableInt> sampleStats = sampleSetCounter.get(key);
-				for(String field : sampleStats.keySet() ){
-					statisticsOutput.print('\t');
-					statisticsOutput.print(field);
-					statisticsOutput.print('\t');
-					statisticsOutput.print(sampleStats.get(field).intValue());
-				}
-				statisticsOutput.print('\n');
-			}
+			PrintStream statisticsOutput = System.out;
+			statisticsOutput.println(sampleSetCounter.toStringSorted(MERGED));
 		} catch(IOException e){
 			System.err.println(e);
 			System.exit(1);
