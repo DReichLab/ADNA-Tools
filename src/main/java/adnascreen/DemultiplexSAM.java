@@ -18,6 +18,7 @@ import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMFormatException;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -30,7 +31,7 @@ public class DemultiplexSAM {
 		int numTopSamples = 1000;
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
 		
-		SAMFileHeader masterHeader = null;
+		SAMSequenceDictionary alignmentReference = null;
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
 		
 		// read statistics file with top keys
@@ -59,10 +60,11 @@ public class DemultiplexSAM {
 					SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
 			){
 				SAMFileHeader header = reader.getFileHeader();
-				if(masterHeader == null){
-					masterHeader = header;
-				} else if(!masterHeader.equals(header)){
-					throw new IllegalArgumentException("SAM headers do not match");
+				SAMSequenceDictionary currentAlignmentReference = header.getSequenceDictionary();
+				if(alignmentReference == null){
+					alignmentReference = currentAlignmentReference;
+				} else if(!alignmentReference.equals(currentAlignmentReference)){
+					throw new IllegalArgumentException("SAM references do not match");
 				}
 
 				SAMRecordIterator i = reader.iterator();

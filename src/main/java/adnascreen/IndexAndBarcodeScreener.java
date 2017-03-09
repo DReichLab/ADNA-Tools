@@ -76,7 +76,6 @@ public class IndexAndBarcodeScreener {
 				}
 				// output to file and more statistics recording
 				if(merged != null){
-					// TODO histogram of length distribution
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
