@@ -13,9 +13,7 @@ import java.util.Set;
 
 /**
  * Find a best match for a query within a specified tolerance (maximum Hamming distance)
- * within a known reference set.  
- * All barcodes within a set are considered equivalent. 
- * When searching, we return a string label representing the entire set. 
+ * within a known reference set. 
  * Possible future improvements:
  * - comparison based on probability rather than Hamming distance
  * @author mmah
@@ -27,6 +25,7 @@ public class BarcodeMatcher {
 	private Set<String> labels;
 	private int maxHammingDistance;
 	private int barcodeLength = -1;
+	public final static char INDEX_DELIMITER = '.';
 	
 	public BarcodeMatcher(){
 		referenceBarcodeToLabel = new HashMap<DNASequence, String>();
@@ -80,14 +79,19 @@ public class BarcodeMatcher {
 			// enforce unique labels
 			if(labels.contains(label))
 				throw new IllegalArgumentException("labels must be unique");
+			if(label.contains(String.valueOf(INDEX_DELIMITER)))
+				throw new IllegalArgumentException("Barcode labels can not contain delimiter " + INDEX_DELIMITER);
 			labels.add(label);
 			// add reference sets for this label
+			int index = 1;
 			for(String barcode : barcodeStrings){
 				if(barcodeLength == -1) // set initial length once
 					barcodeLength = barcode.length();
 				if(barcode.length() != barcodeLength) // check all lengths against the first
 					throw new IllegalArgumentException("barcode length mismatch");
-				referenceBarcodeToLabel.put(new DNASequence(barcode), label);
+				// if there is more than one barcode in this set, add index within set 
+				String augmentedLabel = (barcodeStrings.length > 1) ? label + INDEX_DELIMITER + index++ : label;
+				referenceBarcodeToLabel.put(new DNASequence(barcode), augmentedLabel);
 			}
 		}
 		if(clearCaches){

@@ -16,12 +16,13 @@ public class BarcodeMatcherTests {
 	public void exactMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
 		String label = "Q1";
+		String expectedResult = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "1";
 		DNASequence query = new DNASequence("ATCGATT");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
 		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String result = barcodeMatcher.find(query);
-		assertEquals(label, result);
+		assertEquals(expectedResult, result);
 	}
 	
 	@Test
@@ -40,6 +41,7 @@ public class BarcodeMatcherTests {
 	public void matchDiff1(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
 		String label = "Q1";
+		String expectedResult = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "1";
 		DNASequence query = new DNASequence("ATCGATG");
 
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
@@ -47,7 +49,22 @@ public class BarcodeMatcherTests {
 		
 		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String result = barcodeMatcher.find(query);
-		assertEquals(label, result);
+		assertEquals(expectedResult, result);
+	}
+	
+	@Test
+	public void matchDiff1_fourthElement(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String expectedResult = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "4";
+		DNASequence query = new DNASequence("TGACTTG");
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.setMaxHammingDistance(1);
+		
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		String result = barcodeMatcher.find(query);
+		assertEquals(expectedResult, result);
 	}
 	
 	@Test
@@ -69,8 +86,8 @@ public class BarcodeMatcherTests {
 			
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 			String result;
-			// #25
-			String expected = "Q34"; //CTTCCGA:GAAGGTC:TCCTTAG:AGGAACT
+			//CTTCCGA:GAAGGTC:TCCTTAG:AGGAACT
+			String expected = "Q34" + BarcodeMatcher.INDEX_DELIMITER + "2"; 
 			
 			DNASequence query1 = new DNASequence("GAAGGTC");
 			result = barcodeMatcher.find(query1);
@@ -107,5 +124,16 @@ public class BarcodeMatcherTests {
 		barcodeMatcher.addReferenceSet(barcodeSet2, label);
 		
 		fail("Label was allowed twice");
+	}
+	
+	@Test
+	public void invalidLabelWithDelimiter(){
+		thrown.expect(IllegalArgumentException.class);
+		
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG" + BarcodeMatcher.INDEX_DELIMITER;
+		String label = "Q1";
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		fail("Illegal label was allowed");
 	}
 }

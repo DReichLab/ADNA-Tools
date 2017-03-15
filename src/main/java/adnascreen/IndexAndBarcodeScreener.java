@@ -67,10 +67,12 @@ public class IndexAndBarcodeScreener {
 				
 				IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1, i2, 
 						i5Indices, i7Indices, barcodes);
+				IndexAndBarcodeKey keyFlattened = null;
 				sampleSetCounter.increment(); // statistics recording
 				MergedRead merged = null;
 				if(key != null){
-					sampleSetCounter.increment(key, RAW);
+					keyFlattened = key.flatten();
+					sampleSetCounter.increment(keyFlattened, RAW);
 					merged = MergedRead.mergePairedSequences(r1, r2, key, 
 						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength);
 				}
@@ -79,12 +81,12 @@ public class IndexAndBarcodeScreener {
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
-					sampleSetCounter.increment(key, MERGED);
+					sampleSetCounter.increment(keyFlattened, MERGED);
 				}
 			}
 			// output map statistics
 			PrintStream statisticsOutput = System.out;
-			statisticsOutput.println(sampleSetCounter.toStringSorted(MERGED));
+			statisticsOutput.println(sampleSetCounter.toStringSorted(RAW));
 		} catch(IOException e){
 			System.err.println(e);
 			System.exit(1);

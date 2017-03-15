@@ -1,5 +1,9 @@
 package adnascreen;
 
+/**
+ * 
+ * 
+ */
 public class IndexAndBarcodeKey {
 	// labels
 	private String i5, i7;
@@ -7,6 +11,10 @@ public class IndexAndBarcodeKey {
 
 	// - is chosen because it is a natural character in filenames 
 	public static final char FIELD_SEPARATOR = '-'; // this needs to be distinct from MergedRead.KEY_SEPARATOR
+	private static String INDEX_SEPARATOR;
+	static{
+		INDEX_SEPARATOR = "\\" + String.valueOf(BarcodeMatcher.INDEX_DELIMITER);
+	}
 	
 	public IndexAndBarcodeKey(String i5, String i7, String p5, String p7){
 		this.i5 = i5;
@@ -38,7 +46,33 @@ public class IndexAndBarcodeKey {
 		b.append(p7);
 		return b.toString();
 	}
-
+	
+	/**
+	 * For each index and barcode, remove the portion of the label that specifies the position
+	 * within the reference barcode set.   
+	 * This information is necessary for deduplication, but should be removed for demultiplexing. 
+	 * @return
+	 */
+	public IndexAndBarcodeKey flatten(){
+		return new IndexAndBarcodeKey(flatten(i5),
+				flatten(i7),
+				flatten(p5),
+				flatten(p7));
+	}
+	
+	/**
+	 * 
+	 * @param toFlatten label, potentially with delimiter and index
+	 * @return label with delimiter and index removed
+	 */
+	private static String flatten(String toFlatten){
+		if(toFlatten != null && toFlatten.contains(INDEX_SEPARATOR)){
+			String [] fields = toFlatten.split(INDEX_SEPARATOR);
+			return fields[0];
+		}
+		return null;
+	}
+	
 	public String getI5Label() {
 		return i5;
 	}

@@ -29,6 +29,7 @@ public class DemultiplexSAM {
 	
 	public static void main(String [] args) throws IOException {
 		int numTopSamples = 1000;
+		String duplicatesSAMTag = "XD";
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
 		
 		SAMSequenceDictionary alignmentReference = null;
@@ -73,28 +74,35 @@ public class DemultiplexSAM {
 					try{
 						SAMRecord record = i.next();
 						// parse out key, which is a 4-tuple of indices and barcodes
-						String readname = record.getReadName();
-						String [] readnameParts = readname.split(String.valueOf(MergedRead.KEY_SEPARATOR));
-						IndexAndBarcodeKey key = new IndexAndBarcodeKey(readnameParts[1]);
+						String readName = record.getReadName();
+						String [] readNameParts = readName.split(String.valueOf(MergedRead.KEY_SEPARATOR));
+						IndexAndBarcodeKey key = new IndexAndBarcodeKey(readNameParts[1]);
+						IndexAndBarcodeKey keyFlattened = key.flatten();
+						
+						// for deduplication, write unflattened key identifying barcodes within set and read length to tag
+						int length = record.getReadLength();
+						record.setAttribute(duplicatesSAMTag, key.toString() + "_" + length);
+						// remove the key from the read name
+						record.setReadName(readNameParts[0]);
 
 						// record statistics
 						// count of demultiplexed reads is for checking consistency
-						statistics.increment(key, DEMULTIPLEXED);
+						statistics.increment(keyFlattened, DEMULTIPLEXED);
 						if(!record.getReadUnmappedFlag()){ // read is mapped
-							statistics.increment(key, ALIGNED);
+							statistics.increment(keyFlattened, ALIGNED);
 						}
 						
 						// write only to open files for top keys
-						if(outputFiles.containsKey(key)){
+						if(outputFiles.containsKey(keyFlattened)){
 							// find file corresponding to this key
-							SAMFileWriter output = outputFiles.get(key);
+							SAMFileWriter output = outputFiles.get(keyFlattened);
 							if(output == null){ // open new file, if none exists for this key
-								String outputFilename = key.toString() + ".sam";
+								String outputFilename = keyFlattened.toString() + ".sam";
 								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
 								//File outputFile = new File(outputFilename);
 								output = outputFileFactory.makeSAMWriter(header, true, outputFile);
 								//output = outputFileFactory.makeBAMWriter(header, true, outputFile);
-								outputFiles.put(key, output); // 
+								outputFiles.put(keyFlattened, output); // 
 							}
 							// write alignment to file
 							output.addAlignment(record);
@@ -108,7 +116,7 @@ public class DemultiplexSAM {
 				}
 			}
 		}
-		System.out.println(statistics.toStringSorted(ALIGNED));
+		System.out.println(statistics.toStringSorted(IndexAndBarcodeScreener.RAW));
 		// cleanup, close all files
 		for(SAMFileWriter writer : outputFiles.values())
 			writer.close();
