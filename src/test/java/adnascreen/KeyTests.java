@@ -31,6 +31,7 @@ public class KeyTests {
 		char separator = BarcodeMatcher.INDEX_DELIMITER;
 		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1", "2", "Q3" + separator + "3", "Q4" + separator + "4");
 		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("1", "2", "Q3" + separator + "2", "Q4" + separator + "1");
+		IndexAndBarcodeKey expectedFlattened = new IndexAndBarcodeKey("1", "2", "Q3", "Q4");
 		
 		assertNotEquals(key1, key2);
 		
@@ -39,6 +40,8 @@ public class KeyTests {
 		assertNotEquals(key1, key1Flattened);
 		assertNotEquals(key2, key2Flattened);
 		assertEquals(key1Flattened, key2Flattened);
+		assertEquals(expectedFlattened, key1Flattened);
+		assertEquals(expectedFlattened, key2Flattened);
 	}
 	
 	@Test

@@ -12,8 +12,10 @@ public class IndexAndBarcodeKey {
 	// - is chosen because it is a natural character in filenames 
 	public static final char FIELD_SEPARATOR = '-'; // this needs to be distinct from MergedRead.KEY_SEPARATOR
 	private static String INDEX_SEPARATOR;
+	private static String INDEX_SEPARATOR_REGEX;
 	static{
-		INDEX_SEPARATOR = "\\" + String.valueOf(BarcodeMatcher.INDEX_DELIMITER);
+		INDEX_SEPARATOR = String.valueOf(BarcodeMatcher.INDEX_DELIMITER);
+		INDEX_SEPARATOR_REGEX = "\\" + INDEX_SEPARATOR;
 	}
 	
 	public IndexAndBarcodeKey(String i5, String i7, String p5, String p7){
@@ -67,10 +69,10 @@ public class IndexAndBarcodeKey {
 	 */
 	private static String flatten(String toFlatten){
 		if(toFlatten != null && toFlatten.contains(INDEX_SEPARATOR)){
-			String [] fields = toFlatten.split(INDEX_SEPARATOR);
+			String [] fields = toFlatten.split(INDEX_SEPARATOR_REGEX);
 			return fields[0];
 		}
-		return null;
+		return toFlatten;
 	}
 	
 	public String getI5Label() {

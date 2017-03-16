@@ -14,6 +14,12 @@ import java.util.zip.GZIPOutputStream;
 
 import htsjdk.samtools.fastq.FastqReader;
 
+/**
+ * Make a pass through an Illumina sequencer output. 
+ * For reads that have Reichlab indices and barcodes that look like the input sets, 
+ * output to a series of size-matched files and count them. 
+ *
+ */
 public class IndexAndBarcodeScreener {
 	
 	public static final String RAW = "raw";
