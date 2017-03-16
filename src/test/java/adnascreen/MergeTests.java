@@ -66,6 +66,14 @@ public class MergeTests {
 	}
 	
 	@Test
+	public void trimEmpty(){
+		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0", "", "");
+		Read trimmedR1 = r1.trimTrailingUnknownBases();
+		assertEquals(0, r1.length());
+		assertEquals(0, trimmedR1.length());
+	}
+	
+	@Test
 	public void MergedReadToString(){
 		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
 				"CTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC",

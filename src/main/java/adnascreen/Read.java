@@ -100,7 +100,7 @@ public class Read {
 	 */
 	public Read trimTrailingUnknownBases(){
 		int i = dna.length();
-		while('N' == Character.toUpperCase(dna.charAt(i-1)) && i > 0){
+		while((i > 0) && ('N' == Character.toUpperCase(dna.charAt(i-1))) ){
 			i--;
 		}
 		DNASequence trimmedDNA = dna.subsequence(0, i);
