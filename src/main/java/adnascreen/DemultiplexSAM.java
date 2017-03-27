@@ -119,8 +119,9 @@ public class DemultiplexSAM {
 		System.out.println(statistics.toStringSorted(IndexAndBarcodeScreener.RAW));
 		// cleanup, close all files
 		for(SAMFileWriter writer : outputFiles.values()){
-			if(writer != null)
+			if(writer != null){
 				writer.close();
+			}
 		}
 	}
 }
