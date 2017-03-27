@@ -100,7 +100,7 @@ public class DemultiplexSAM {
 								String outputFilename = keyFlattened.toString() + ".sam";
 								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
 								//File outputFile = new File(outputFilename);
-								output = outputFileFactory.makeSAMWriter(header, true, outputFile);
+								output = outputFileFactory.makeSAMWriter(header, false, outputFile);
 								//output = outputFileFactory.makeBAMWriter(header, true, outputFile);
 								outputFiles.put(keyFlattened, output); // 
 							}
@@ -118,7 +118,9 @@ public class DemultiplexSAM {
 		}
 		System.out.println(statistics.toStringSorted(IndexAndBarcodeScreener.RAW));
 		// cleanup, close all files
-		for(SAMFileWriter writer : outputFiles.values())
-			writer.close();
+		for(SAMFileWriter writer : outputFiles.values()){
+			if(writer != null)
+				writer.close();
+		}
 	}
 }
