@@ -17,6 +17,6 @@ public class AggregateStatistics {
 			statistics.combine(current);
 		}
 		// output combined statistics
-		System.out.println(statistics.toStringSorted("merged"));
+		System.out.println(statistics.toStringSorted("raw"));
 	}
 }
