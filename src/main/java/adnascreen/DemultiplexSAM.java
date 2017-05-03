@@ -54,7 +54,7 @@ public class DemultiplexSAM {
 		SampleSetsCounter statistics = new SampleSetsCounter(f);
 		// iterate through input files
 		
-		String [] samFilenamesToProcess = Arrays.copyOfRange(args, 1, args.length);
+		String [] samFilenamesToProcess = Arrays.copyOfRange(args, 1, args.length + 1);
 		for(String filename : samFilenamesToProcess){
 			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
 			try(
@@ -97,11 +97,10 @@ public class DemultiplexSAM {
 							// find file corresponding to this key
 							SAMFileWriter output = outputFiles.get(keyFlattened);
 							if(output == null){ // open new file, if none exists for this key
-								String outputFilename = keyFlattened.toString() + ".sam";
+								String outputFilename = keyFlattened.toString() + ".bam";
 								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
-								//File outputFile = new File(outputFilename);
-								output = outputFileFactory.makeSAMWriter(header, false, outputFile);
-								//output = outputFileFactory.makeBAMWriter(header, true, outputFile);
+								//output = outputFileFactory.makeSAMWriter(header, false, outputFile);
+								output = outputFileFactory.makeBAMWriter(header, true, outputFile);
 								outputFiles.put(keyFlattened, output); // 
 							}
 							// write alignment to file
