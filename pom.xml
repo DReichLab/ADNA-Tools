@@ -4,6 +4,10 @@
   <artifactId>adnascreen</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>Ancient DNA Screening</name>
+  <properties>
+   <maven.compiler.source>1.8</maven.compiler.source>
+   <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
   <dependencies>
   	<dependency>
   		<groupId>junit</groupId>
@@ -20,6 +24,16 @@
 		<artifactId>htsjdk</artifactId>
 		<version>2.9.1</version>
 	</dependency>
+	<dependency>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-math3</artifactId>
+		<version>3.6.1</version>
+	</dependency>
+	<dependency>
+		<groupId>org.json</groupId>
+		<artifactId>json</artifactId>
+		<version>20160810</version>
+	</dependency>	
   </dependencies>
 	<build>
 		<plugins>
