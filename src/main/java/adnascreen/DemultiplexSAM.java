@@ -54,7 +54,7 @@ public class DemultiplexSAM {
 		SampleSetsCounter statistics = new SampleSetsCounter(f);
 		// iterate through input files
 		
-		String [] samFilenamesToProcess = Arrays.copyOfRange(args, 1, args.length + 1);
+		String [] samFilenamesToProcess = Arrays.copyOfRange(args, 1, args.length);
 		for(String filename : samFilenamesToProcess){
 			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
 			try(
