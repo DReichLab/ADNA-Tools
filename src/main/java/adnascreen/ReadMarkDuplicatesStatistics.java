@@ -20,7 +20,9 @@ public class ReadMarkDuplicatesStatistics {
 			// ignore comment lines beginning with # and empty lines
 			do{
 				line = f.readLine();
-			} while(line.startsWith("#") || line.length() == 0);
+			} while(line != null && (line.startsWith("#") || line.length() == 0));
+			if(line == null) // no line indicates there are no duplicates
+				return 0;
 			String headerLine = line;
 			String statsLine = f.readLine();
 
