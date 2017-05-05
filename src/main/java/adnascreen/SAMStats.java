@@ -101,7 +101,7 @@ public class SAMStats {
 		
 		String filename = commandLine.getOptionValue('f');
 		JSONObject targets = new JSONObject(commandLine.getOptionValue('t'));
-		String histogramFilename = commandLine.getOptionValue('h');
+		String histogramFilename = commandLine.getOptionValue('l');
 		int minimumMappingQuality = Integer.valueOf(commandLine.getOptionValue('q', "0"));
 		
 		// parse the second argument as JSON
