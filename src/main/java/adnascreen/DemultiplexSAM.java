@@ -8,9 +8,15 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
@@ -27,8 +33,15 @@ public class DemultiplexSAM {
 	public static final String ALIGNED = "aligned";
 	public static final String DEMULTIPLEXED = "demultiplexed";
 	
-	public static void main(String [] args) throws IOException {
-		int numTopSamples = 1000;
+	public static void main(String [] args) throws IOException, ParseException {
+		CommandLineParser parser = new DefaultParser();
+		Options options = new Options();
+		options.addRequiredOption("s", "statisticsFilename", true, "Statistics file sorted in order of output");
+		options.addOption("n", "numSamples", true, "Number of top samples to output");
+		CommandLine commandLine	= parser.parse(options, args);
+		
+		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
+		
 		String duplicatesSAMTag = "XD";
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
 		
@@ -37,7 +50,7 @@ public class DemultiplexSAM {
 		
 		// read statistics file with top keys
 		// open a SAM/BAM file for each key for demultiplexing its data
-		String statisticsFilename = args[0];
+		String statisticsFilename = commandLine.getOptionValue('s');
 		File f = new File(statisticsFilename);
 		try(BufferedReader reader = new BufferedReader(new FileReader(f))){
 			Integer.valueOf(reader.readLine());
@@ -54,7 +67,7 @@ public class DemultiplexSAM {
 		SampleSetsCounter statistics = new SampleSetsCounter(f);
 		// iterate through input files
 		
-		String [] samFilenamesToProcess = Arrays.copyOfRange(args, 1, args.length);
+		List<String> samFilenamesToProcess = commandLine.getArgList();
 		for(String filename : samFilenamesToProcess){
 			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
 			try(
