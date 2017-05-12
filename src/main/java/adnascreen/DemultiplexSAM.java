@@ -38,9 +38,12 @@ public class DemultiplexSAM {
 		Options options = new Options();
 		options.addRequiredOption("s", "statisticsFilename", true, "Statistics file sorted in order of output");
 		options.addOption("n", "numSamples", true, "Number of top samples to output");
+		options.addOption("b", "BAM", false, "Use bam files for output");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
+		boolean useBAM = commandLine.hasOption('b');
+		String fileExtension = useBAM ? "bam" : "sam";
 		
 		String duplicatesSAMTag = "XD";
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
@@ -110,19 +113,24 @@ public class DemultiplexSAM {
 							// find file corresponding to this key
 							SAMFileWriter output = outputFiles.get(keyFlattened);
 							if(output == null){ // open new file, if none exists for this key
-								String outputFilename = keyFlattened.toString() + ".bam";
+								String outputFilename = keyFlattened.toString() + fileExtension;
 								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
-								//output = outputFileFactory.makeSAMWriter(header, false, outputFile);
-								output = outputFileFactory.makeBAMWriter(header, true, outputFile);
+								if(useBAM){
+									output = outputFileFactory.makeBAMWriter(header, true, outputFile);
+								} else {
+									output = outputFileFactory.makeSAMWriter(header, false, outputFile);
+								}
 								outputFiles.put(keyFlattened, output); // 
 							}
 							// write alignment to file
 							output.addAlignment(record);
 						}
 					} catch (SAMFormatException e){
+						System.err.print(filename + "\t");
 						System.err.println(e);
 						// ignore this record and continue to the next
 					} catch (Exception e){
+						System.err.print(filename + "\t");
 						System.err.println(e);
 					}
 				}
