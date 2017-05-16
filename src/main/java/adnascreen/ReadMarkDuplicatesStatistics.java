@@ -5,6 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 public class ReadMarkDuplicatesStatistics {
 	public static final String DUPLICATES = "duplicates";
 	/**
@@ -45,13 +51,20 @@ public class ReadMarkDuplicatesStatistics {
 		return key;
 	}
 
-	public static void main(String args[]) throws IOException{
-		String filenameFullPath = args[0];
+	public static void main(String args[]) throws IOException, ParseException{
+		CommandLineParser parser = new DefaultParser();
+		Options options = new Options();
+		options.addOption("l", "label", true, "label for duplicates in statistics");
+		CommandLine commandLine	= parser.parse(options, args);
+		
+		String label = commandLine.getOptionValue('l', DUPLICATES);
+		
+		String filenameFullPath = commandLine.getArgList().get(0);
 		IndexAndBarcodeKey key = keyFromFilename(filenameFullPath);
 		// read mark duplicates output
 		SampleSetsCounter stats = new SampleSetsCounter();
 		int numDuplicates = readMarkDuplicateStatistics(filenameFullPath);
-		stats.add(key, DUPLICATES, numDuplicates);
+		stats.add(key, label, numDuplicates);
 		System.out.println(stats.toString());
 	}
 }
