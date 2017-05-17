@@ -43,7 +43,7 @@ public class DemultiplexSAM {
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
 		boolean useBAM = commandLine.hasOption('b');
-		String fileExtension = useBAM ? "bam" : "sam";
+		String fileExtension = useBAM ? ".bam" : ".sam";
 		
 		String duplicatesSAMTag = "XD";
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
