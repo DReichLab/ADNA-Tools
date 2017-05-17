@@ -116,7 +116,7 @@ public class DemultiplexSAM {
 								String outputFilename = keyFlattened.toString() + fileExtension;
 								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
 								if(useBAM){
-									output = outputFileFactory.makeBAMWriter(header, true, outputFile);
+									output = outputFileFactory.makeBAMWriter(header, false, outputFile);
 								} else {
 									output = outputFileFactory.makeSAMWriter(header, false, outputFile);
 								}
