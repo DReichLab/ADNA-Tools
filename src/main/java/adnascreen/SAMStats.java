@@ -6,7 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -30,25 +32,26 @@ import htsjdk.samtools.SamReaderFactory;
  */
 public class SAMStats {
 	private Frequency lengthHistogram;
-	private Map<String, String> referenceNamesToTargetClass;
+	// each alignment may map to multiple targets
+	private Map<String, Set<String> > referenceNamesToTargetClasses;
 	SampleSetsCounter counter;
 
-	public SAMStats(String filename, JSONObject targets, int minimumMappingQuality) throws IOException{
+	public SAMStats(IndexAndBarcodeKey key, String filename, JSONObject targets, int minimumMappingQuality) throws IOException{
 		lengthHistogram = new Frequency();
-		IndexAndBarcodeKey key = ReadMarkDuplicatesStatistics.keyFromFilename(filename);
 		counter = new SampleSetsCounter();
-		referenceNamesToTargetClass = new HashMap<String, String>();
+		referenceNamesToTargetClasses = new HashMap<String, Set<String> >();
 		
+		// construct data structures for counting
 		for(String targetClass : targets.keySet()){
-			JSONArray array = targets.optJSONArray(targetClass);
+			JSONArray array = targets.optJSONArray(targetClass);			
 			if(array != null){
 				for(int i = 0; i < array.length(); i++){
 					String referenceName = array.getString(i);
-					referenceNamesToTargetClass.put(referenceName, targetClass);
+					addReferenceToTargetClass(referenceName, targetClass);
 				}
 			} else {
 				String referenceName = targets.getString(targetClass);
-				referenceNamesToTargetClass.put(referenceName, targetClass);
+				addReferenceToTargetClass(referenceName, targetClass);
 			} 
 		}
 		
@@ -72,11 +75,13 @@ public class SAMStats {
 							lengthHistogram.addValue(readLength);
 							// count alignments to reference sequences 
 							String referenceName = record.getReferenceName();
-							String targetClass = referenceNamesToTargetClass.get(referenceName);
-							if(targetClass != null){
-								counter.increment(key, targetClass);
-								String targetCoverageLabel = targetClass + "-coverageLength";
-								counter.add(key, targetCoverageLabel, readLength);
+							Set<String> targetClassesToCount = referenceNamesToTargetClasses.get(referenceName);
+							if(targetClassesToCount != null){
+								for(String targetClass : targetClassesToCount){
+									counter.increment(key, targetClass);
+									String targetCoverageLabel = targetClass + "-coverageLength";
+									counter.add(key, targetCoverageLabel, readLength);
+								}
 							}
 							//System.out.println(referenceName + "\t" + targetClass);
 						}
@@ -86,8 +91,19 @@ public class SAMStats {
 					// ignore this record and continue to the next
 				}
 			}
-			System.out.println(counter);
 		}
+	}
+	
+	private void addReferenceToTargetClass(String reference, String targetClass){
+		if(!referenceNamesToTargetClasses.containsKey(reference)){
+			referenceNamesToTargetClasses.put(reference, new HashSet<String>() );
+		}
+		Set<String> matchingTargets = referenceNamesToTargetClasses.get(reference);
+		matchingTargets.add(targetClass);
+	}
+	
+	public String toString(){
+		return counter.toString();
 	}
 	
 	public static void main(String []args) throws IOException, ParseException{
@@ -104,11 +120,9 @@ public class SAMStats {
 		String histogramFilename = commandLine.getOptionValue('l');
 		int minimumMappingQuality = Integer.valueOf(commandLine.getOptionValue('q', "0"));
 		
-		// parse the second argument as JSON
-		// each key is a label
-		// value is the reference name to associate with that label
-		// or value is array of reference names to associate with label
-		SAMStats stats = new SAMStats(filename, targets, minimumMappingQuality);
+		IndexAndBarcodeKey key = ReadMarkDuplicatesStatistics.keyFromFilename(filename);
+		SAMStats stats = new SAMStats(key, filename, targets, minimumMappingQuality);
+		System.out.println(stats.toString());
 		
 		if(histogramFilename != null){
 			try(
