@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.broad.reichlab</groupId>
   <artifactId>adnascreen</artifactId>
-  <version>0.1.4-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>Ancient DNA Screening</name>
   <properties>
    <maven.compiler.source>1.8</maven.compiler.source>
@@ -51,7 +51,7 @@
 					<target>1.8</target>
 					<archive>
 						<manifest>
-							<mainClass>adnascreen.IndexAndBarcodeScreener</mainClass>
+							<mainClass>adnascreen.Driver</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
