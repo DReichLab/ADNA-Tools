@@ -21,6 +21,9 @@ public class FASTQHeader {
 	private boolean isFiltered;
 	private int controlNumber;
 	private int index;
+	
+	// used only for separating fields in getReadGroup results 
+	public static final char READ_GROUP_FIELD_DELIMITER = '_';
 
 	public FASTQHeader(String line){
 		// htsjdk checks and removes @ header character
@@ -176,5 +179,19 @@ public class FASTQHeader {
 		return index;
 	}
 	
-	
+	/**
+	 * Return the section of the FASTQHeader corresponding to unique group fields
+	 * @return
+	 */
+	public String getReadGroup(){
+		StringBuilder b = new StringBuilder();
+		b.append(instrument);
+		b.append(READ_GROUP_FIELD_DELIMITER);
+		b.append(runNumber);
+		b.append(READ_GROUP_FIELD_DELIMITER);
+		b.append(flowcellID);
+		b.append(READ_GROUP_FIELD_DELIMITER);
+		b.append(lane);
+		return b.toString();
+	}
 }

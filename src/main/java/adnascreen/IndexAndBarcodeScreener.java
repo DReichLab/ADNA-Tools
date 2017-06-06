@@ -47,6 +47,7 @@ public class IndexAndBarcodeScreener {
 		options.addOption("l", "minimum-length", true, "Minimum length for output merged reads");
 		options.addOption("n", "number-output-files", true, "Number of output files to divide merged reads between");
 		options.addOption("h", "hamming-distance", true, "Max hamming distance for index or barcode match");
+		options.addOption("r", "read-group-file", true, "Output file for read group");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -58,6 +59,7 @@ public class IndexAndBarcodeScreener {
 		final int minMergedLength = Integer.valueOf(commandLine.getOptionValue('l', "30"));
 		final int numOutputFiles = Integer.valueOf(commandLine.getOptionValue('n', "25"));
 		final int maxHammingDistance = Integer.valueOf(commandLine.getOptionValue('h', "1"));
+		String readGroupFilename = commandLine.getOptionValue("read-group-file", "read_group");
 		
 		try{
 			i5Indices = new BarcodeMatcher(commandLine.getOptionValue("i5-indices"), maxHammingDistance);
@@ -82,13 +84,14 @@ public class IndexAndBarcodeScreener {
 				){
 			// prepare output files for multiple parallel processing jobs downstream
 			// for load balancing purposes, these are not demultiplexed
-			String outputFilenameRoot = args[7];
+			String outputFilenameRoot = remainingArgs[4];
 			for(int i = 0; i < numOutputFiles; i++){
 				// start counting from 1 for filenames
 				String outputFilename = String.format("%s_%03d.fastq.gz", outputFilenameRoot, i + 1);
 				fileOutputs[i] = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)))));
 			}
 			
+			String readGroup = null;
 			int pairedReadOutputCount = 0;
 			while(r1Reader.hasNext() && r2Reader.hasNext() && i1Reader.hasNext() && i2Reader.hasNext()){
 				Read r1 = new Read(r1Reader.next());
@@ -106,6 +109,15 @@ public class IndexAndBarcodeScreener {
 					sampleSetCounter.increment(keyFlattened, RAW);
 					merged = MergedRead.mergePairedSequences(r1, r2, key, 
 						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength);
+					// read group consistency
+					String readGroupForThisRead = r1.getFASTQHeader().getReadGroup();
+					if(readGroup == null){
+						readGroup = readGroupForThisRead;
+					} else { // read groups are expected to match for all reads in lane
+						if(!readGroup.equals(readGroupForThisRead)){
+							throw new IllegalStateException();
+						}
+					}
 				}
 				// output to file and more statistics recording
 				if(merged != null){
@@ -118,6 +130,10 @@ public class IndexAndBarcodeScreener {
 			// output map statistics
 			PrintStream statisticsOutput = System.out;
 			statisticsOutput.println(sampleSetCounter.toStringSorted(RAW));
+			// output read group
+			try(PrintWriter readGroupFile = new PrintWriter(readGroupFilename)){
+				readGroupFile.println(readGroup);
+			}
 		} catch(IOException e){
 			System.err.println(e);
 			System.exit(1);

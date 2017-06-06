@@ -49,6 +49,7 @@ public class MergedRead extends Read{
 	/**
 	 * Find the key of 4-tuple of indices and barcodes for this paired read with index reads.  
 	 * Matching is performed using the constraints defined in the argument BarcodeMatchers.
+	 * This also checks that the headers match with the exception of the read number
 	 * @param r1 forward read
 	 * @param r2 reverse read
 	 * @param i1 index read for i7
