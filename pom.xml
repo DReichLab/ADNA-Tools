@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.broad.reichlab</groupId>
   <artifactId>adnascreen</artifactId>
-  <version>0.2.0-SNAPSHOT</version>
+  <version>0.3.0-SNAPSHOT</version>
   <name>Ancient DNA Screening</name>
   <properties>
    <maven.compiler.source>1.8</maven.compiler.source>
@@ -22,7 +22,7 @@
 	<dependency>
 		<groupId>com.github.samtools</groupId>
 		<artifactId>htsjdk</artifactId>
-		<version>2.9.1</version>
+		<version>2.10.0</version>
 	</dependency>
 	<dependency>
 		<groupId>org.apache.commons</groupId>
