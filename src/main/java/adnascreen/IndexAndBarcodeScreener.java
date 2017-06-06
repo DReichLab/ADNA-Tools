@@ -12,43 +12,68 @@ import java.io.PrintWriter;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 import htsjdk.samtools.fastq.FastqReader;
 
 /**
- * Make a pass through an Illumina sequencer output. 
+ * Make a pass through one lane of Illumina sequencer output. 
  * For reads that have Reichlab indices and barcodes that look like the input sets, 
  * output to a series of size-matched files and count them. 
- *
+ * This performs merging of forward and reverse reads, assuming a minimum overlap
+ * and a minimum resulting length. 
+ * Adapters and barcodes are trimmed. 
  */
 public class IndexAndBarcodeScreener {
 	
 	public static final String RAW = "raw";
 	public static final String MERGED = "merged";
 
-	public static void main(String []args) throws IOException{
+	public static void main(String []args) throws IOException, ParseException{
+		CommandLineParser parser = new DefaultParser();
+		Options options = new Options();
+		options.addRequiredOption("i", "i5-indices", true, 
+				"File containing one valid i5 index sets per line");
+		options.addRequiredOption("j", "i7-indices", true, 
+				"File containing one valid i7 index sets per line");
+		options.addRequiredOption("b", "barcodes", true, 
+				"File containing one valid barcodes sets per line with ':'-delimited elements");
+		options.addOption("p", "mismatch-penalty", true, "Penalty for mismatch while aligning merge");
+		options.addOption("o", "minimum-overlap", true, "Minimum bases of overlap for paired reads to merge");
+		options.addOption("l", "minimum-length", true, "Minimum length for output merged reads");
+		options.addOption("n", "number-output-files", true, "Number of output files to divide merged reads between");
+		options.addOption("h", "hamming-distance", true, "Max hamming distance for index or barcode match");
+		CommandLine commandLine	= parser.parse(options, args);
+		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
 		BarcodeMatcher barcodes = null;
 		// We keep statistics for each 4-tuple of indices and barcodes
 		SampleSetsCounter sampleSetCounter = new SampleSetsCounter();
-		final int maxPenalty = 3;
-		final int minOverlap = 15;
-		final int minMergedLength = 30;
-		final int numOutputFiles = 25;
-
+		final int maxPenalty = Integer.valueOf(commandLine.getOptionValue('p', "3"));
+		final int minOverlap = Integer.valueOf(commandLine.getOptionValue('o', "15"));
+		final int minMergedLength = Integer.valueOf(commandLine.getOptionValue('l', "30"));
+		final int numOutputFiles = Integer.valueOf(commandLine.getOptionValue('n', "25"));
+		final int maxHammingDistance = Integer.valueOf(commandLine.getOptionValue('h', "1"));
+		
 		try{
-			i5Indices = new BarcodeMatcher(args[0], 1);
-			i7Indices = new BarcodeMatcher(args[1], 1);
-			barcodes = new BarcodeMatcher(args[2], 1);
+			i5Indices = new BarcodeMatcher(commandLine.getOptionValue("i5-indices"), maxHammingDistance);
+			i7Indices = new BarcodeMatcher(commandLine.getOptionValue("i7-indices"), maxHammingDistance);
+			barcodes = new BarcodeMatcher(commandLine.getOptionValue('b'), maxHammingDistance);
 		} catch(IOException e){
 			System.exit(1);
 		}
 
+		String[] remainingArgs = commandLine.getArgs();
 		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];;
 		try(
-				FileInputStream r1File = new FileInputStream(args[3]);
-				FileInputStream r2File = new FileInputStream(args[4]);
-				FileInputStream i1File = new FileInputStream(args[5]);
-				FileInputStream i2File = new FileInputStream(args[6]);
+				FileInputStream r1File = new FileInputStream(remainingArgs[0]);
+				FileInputStream r2File = new FileInputStream(remainingArgs[1]);
+				FileInputStream i1File = new FileInputStream(remainingArgs[2]);
+				FileInputStream i2File = new FileInputStream(remainingArgs[3]);
 
 				FastqReader r1Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r1File))));
 				FastqReader r2Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r2File))));
