@@ -179,19 +179,18 @@ public class FASTQHeader {
 		return index;
 	}
 	
-	/**
-	 * Return the section of the FASTQHeader corresponding to unique group fields
-	 * @return
-	 */
-	public String getReadGroup(){
+	public String getReadGroupElements(){
 		StringBuilder b = new StringBuilder();
-		b.append(instrument);
-		b.append(READ_GROUP_FIELD_DELIMITER);
-		b.append(runNumber);
-		b.append(READ_GROUP_FIELD_DELIMITER);
-		b.append(flowcellID);
-		b.append(READ_GROUP_FIELD_DELIMITER);
-		b.append(lane);
+		b.append("PM:");
+		b.append(getInstrument());
+		b.append("\t");
+		b.append("PU:");
+		// platform identifer is flow_cell_id . r . lane
+		b.append(getFlowcellID());
+		b.append(".");
+		b.append(getRunNumber());
+		b.append(".");
+		b.append(getLane());
 		return b.toString();
 	}
 }

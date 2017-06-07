@@ -110,7 +110,7 @@ public class IndexAndBarcodeScreener {
 					merged = MergedRead.mergePairedSequences(r1, r2, key, 
 						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength);
 					// read group consistency
-					String readGroupForThisRead = r1.getFASTQHeader().getReadGroup();
+					String readGroupForThisRead = r1.getFASTQHeader().getReadGroupElements();
 					if(readGroup == null){
 						readGroup = readGroupForThisRead;
 					} else { // read groups are expected to match for all reads in lane
@@ -131,8 +131,10 @@ public class IndexAndBarcodeScreener {
 			PrintStream statisticsOutput = System.out;
 			statisticsOutput.println(sampleSetCounter.toStringSorted(RAW));
 			// output read group
-			try(PrintWriter readGroupFile = new PrintWriter(readGroupFilename)){
-				readGroupFile.println(readGroup);
+			if(readGroupFilename != null){
+				try(PrintWriter readGroupFile = new PrintWriter(readGroupFilename)){
+					readGroupFile.println(readGroup);
+				}
 			}
 		} catch(IOException e){
 			System.err.println(e);

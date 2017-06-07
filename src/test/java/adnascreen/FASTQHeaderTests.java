@@ -51,12 +51,11 @@ public class FASTQHeaderTests {
 	}
 	
 	@Test
-	public void readGroup(){
+	public void readGroupElements(){
 		String header = "@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0";
 		FASTQHeader h1 = new FASTQHeader(header);
-		String readGroup = h1.getReadGroup();
-		String readGroupHeaderSection = "NS500217:348:HTW2FBGXY:1";
-		String expected = readGroupHeaderSection.replaceAll(":", String.valueOf(FASTQHeader.READ_GROUP_FIELD_DELIMITER));
-		assertEquals(expected, readGroup);
+		String expected = "PM:NS500217\tPU:HTW2FBGXY.348.1";
+		String s = h1.getReadGroupElements();
+		assertEquals(expected, s);
 	}
 }
