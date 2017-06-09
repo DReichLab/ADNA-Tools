@@ -100,14 +100,7 @@ public class DemultiplexSAM {
 						record.setAttribute(duplicatesSAMTag, key.toString() + "_" + length);
 						// remove the key from the read name
 						String readNameNoKey = readNameParts[0];
-						
-						// remove read group from read name, if present
-						String readGroup = record.getReadGroup().getReadGroupId();
-						// replace delimiters to match as it would appear in a FASTQ file
-						String readGroupFASTQ = readGroup.replaceAll(String.valueOf(FASTQHeader.READ_GROUP_FIELD_DELIMITER), ":") 
-								+ ":";
-						String reducedReadName = readNameNoKey.replace(readGroupFASTQ, "");
-						record.setReadName(reducedReadName);
+						record.setReadName(readNameNoKey);
 
 						// record statistics
 						// count of demultiplexed reads is for checking consistency
@@ -140,6 +133,7 @@ public class DemultiplexSAM {
 					} catch (Exception e){
 						System.err.print(filename + "\t");
 						System.err.println(e);
+						e.printStackTrace(System.err);
 					}
 				}
 			}
