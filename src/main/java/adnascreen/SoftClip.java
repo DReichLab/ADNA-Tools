@@ -107,5 +107,7 @@ public class SoftClip {
 		String softClippedCigarString = CigarUtil.cigarStringFromArray(cigarUnrolled);
 		Cigar softClippedCigar = TextCigarCodec.decode(softClippedCigarString);
 		record.setCigar(softClippedCigar);
+		// remove MD tag, which is not well documented and needs to match cigar
+		record.setAttribute("MD", null);
 	}
 }
