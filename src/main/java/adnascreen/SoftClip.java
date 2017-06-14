@@ -13,6 +13,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import htsjdk.samtools.Cigar;
+import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
@@ -80,10 +81,32 @@ public class SoftClip {
 	}
 	
 	/**
+	 * Edit distance of this cigar from inserts
+	 * Other portion of edit distance comes from MD field
+	 * @param cigar
+	 * @return
+	 */
+	public static int editDistance(Cigar cigar){
+		int edits = 0;
+		for(CigarElement c : cigar.getCigarElements()){
+			if(c.getOperator().equals(CigarOperator.INSERTION)){
+				edits += c.getLength();
+			}
+		}
+		return edits;
+	}
+	
+	public static int editDistance(Cigar cigar, SAM_MD md){
+		return editDistance(cigar) + md.editDistance();
+	}
+	
+	/**
 	 * Soft clip the requested number bases both at the beginning and end of a read.  
 	 * If a base is already soft clipped, it still counts towards the requested bases.
 	 * Alignment position is adjusted accordingly, taking into account whether the 
 	 * cigar operators in the clipped positions consume reference bases. 
+	 * Modify the MD field to match the changed cigar. 
+	 * TODO edit distance tag NM
 	 * @param record
 	 * @param numberOfBasesToClip
 	 */
@@ -93,11 +116,16 @@ public class SoftClip {
 		char [] cigarUnrolled = CigarUtil.cigarArrayFromElements(startingCigar.getCigarElements() );
 		numberOfBasesToClip = Math.min(numberOfBasesToClip, cigarUnrolled.length);
 		
-		int alignmentStartOffset = 0; // number of bases to move alignment start
+		int alignmentStartOffset = 0; // number of bases to move alignment start, and amount to change MD field
+		int endSideChange = 0; // modifies MD only
 		for (int n = 0; n < numberOfBasesToClip; n++){
 			CigarOperator startSide = CigarOperator.characterToEnum(cigarUnrolled[n]);
 			if(startSide.consumesReferenceBases()){
 				alignmentStartOffset++;
+			}
+			CigarOperator endSide = CigarOperator.characterToEnum(cigarUnrolled[cigarUnrolled.length - n - 1]);
+			if(endSide.consumesReferenceBases()){
+				endSideChange++;
 			}
 			cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
 			cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
@@ -107,7 +135,15 @@ public class SoftClip {
 		String softClippedCigarString = CigarUtil.cigarStringFromArray(cigarUnrolled);
 		Cigar softClippedCigar = TextCigarCodec.decode(softClippedCigarString);
 		record.setCigar(softClippedCigar);
-		// remove MD tag, which is not well documented and needs to match cigar
-		record.setAttribute("MD", null);
+		
+		// modify the MD field to match cigar
+		String mdString = (String) record.getAttribute("MD");
+		SAM_MD md = new SAM_MD(mdString);
+		md.clip(alignmentStartOffset, endSideChange);
+		record.setAttribute("MD", md.toString());
+		
+		// modify NM edit distance field
+		int edit = editDistance(softClippedCigar, md);
+		record.setAttribute("NM", edit);
 	}
 }
