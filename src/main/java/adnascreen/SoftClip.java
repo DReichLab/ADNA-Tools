@@ -105,8 +105,8 @@ public class SoftClip {
 	 * If a base is already soft clipped, it still counts towards the requested bases.
 	 * Alignment position is adjusted accordingly, taking into account whether the 
 	 * cigar operators in the clipped positions consume reference bases. 
-	 * Modify the MD field to match the changed cigar. 
-	 * TODO edit distance tag NM
+	 * Modify the MD field to match the changed cigar.
+	 * Modify the edit distance tag NM to be consistent with the cigar and MD. 
 	 * @param record
 	 * @param numberOfBasesToClip
 	 */

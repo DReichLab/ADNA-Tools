@@ -27,7 +27,7 @@ import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 
 /**
- * Count the number of alignments for specified targets
+ * Count the number of alignments for specified chromosome targets
  *
  */
 public class SAMStats {

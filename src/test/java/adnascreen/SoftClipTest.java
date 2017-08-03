@@ -307,4 +307,80 @@ public class SoftClipTest {
 		record.validateCigar(-1);
 		assertNull(record.isValid());
 	}
+	
+	
+	@Test
+	public void clipComparisonWithOriginalReadByPosition(){
+		int basesToClip = 2;
+		/*NS500217:348:HTW2FBGXY:2:23107:4108:10621	16	MT	5510	37	20M1D31M	*	0	0	
+		 * CTAGAAATTTAGGTTAAACAAGACCAAGAGCCTTCAAAGCCCTTAGTAAGT	
+		 * EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE	
+		 * X0:i:1	X1:i:0	MD:Z:0A17T1^C23C7	XD:Z:3-14-Q17.4-Q38.2_51	PG:Z:MarkDuplicates	XG:i:1	NM:i:4	XM:i:3	XO:i:1	XT:A:U
+		 */
+		String readName = "test";
+		String referenceName = "MT";
+		int flags = 16;
+		int alignmentStart = 5510;
+		String readString = "CTAGAAATTTAGGTTAAACAAGACCAAGAGCCTTCAAAGCCCTTAGTAAGT";
+		String qualityString = "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
+		
+		int readLength = 51;
+		
+		SAMRecord record = new SAMRecord(null);
+		record.setReadName(readName);
+		record.setReferenceName(referenceName);
+		record.setFlags(flags);
+		record.setAlignmentStart(alignmentStart);
+		record.setReadString(readString);
+		record.setBaseQualityString(qualityString);
+		record.setMappingQuality(37);
+		record.setCigarString("20M1D31M");
+		record.setAttribute("MD", "0A17T1^C23C7");
+		record.setAttribute("NM", 4);
+		
+		assertEquals(readLength, record.getReadLength());
+		
+		SAMRecord original = new SAMRecord(null);
+		original.setReadName(readName);
+		original.setReferenceName(referenceName);
+		original.setFlags(flags);
+		original.setAlignmentStart(alignmentStart);
+		original.setReadString(readString);
+		original.setBaseQualityString(qualityString);
+		original.setMappingQuality(37);
+		original.setCigarString("20M1D31M");
+		original.setAttribute("MD", "0A17T1^C23C7");
+		original.setAttribute("NM", 4);
+		
+		SoftClip.softClipBothEndsOfRead(record, 2);
+		assertEquals(readName, record.getReadName());
+		assertEquals(referenceName, record.getReferenceName());
+		assertEquals(flags, record.getFlags());
+		assertEquals(alignmentStart + basesToClip, record.getAlignmentStart());
+		assertEquals(readString, record.getReadString());
+		assertEquals(qualityString, record.getBaseQualityString());
+		assertEquals("2S18M1D29M2S", record.getCigarString());
+		assertEquals("16T1^C23C5", record.getAttribute("MD"));
+		assertEquals(3, record.getAttribute("NM"));
+		//assertEquals(readLength - 2 * basesToClip, record.getReadLength());
+		//System.out.println(record.getAlignmentEnd());
+		
+		record.validateCigar(-1);
+		assertNull(record.isValid());
+		
+		//System.out.println(record.getSAMString());
+		
+		for (int i = record.getAlignmentStart(); i < record.getAlignmentEnd(); i++){
+			assertEquals(original.getReadPositionAtReferencePosition(i), record.getReadPositionAtReferencePosition(i));
+		}
+	}
+	
+	@Test
+	public void sample(){
+		/* NS500217:348:HTW2FBGXY:1:21302:14243:3111	4	GL000248.1	39786	0	7M4I42M	*	0	0	
+		 * CGATCTGTATCGGCACCTTGGCCTCCCAAAGTGCTGGGATTACAGGCATGAGC	
+		 * EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE	
+		 * X0:i:2	X1:i:0	XA:Z:16,+75842244,8M4I41M,4;	MD:Z:7C41	XD:Z:48-91-Q11.2-Q43.4_53	XG:i:4	NM:i:5	XM:i:0	XO:i:2	XT:A:R
+		 * */
+	}
 }
