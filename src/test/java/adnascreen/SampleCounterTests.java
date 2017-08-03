@@ -75,8 +75,8 @@ public class SampleCounterTests {
 	private final String ALIGNED = "aligned";
 	@Test
 	public void basicSets(){
-		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1-2-Q1-Q2");
-		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3-4-Q3-Q4");
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_2_Q1_Q2");
+		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3_4_Q3_Q4");
 		
 		SampleSetsCounter set1 = new SampleSetsCounter();
 		SampleSetsCounter set2 = new SampleSetsCounter();
@@ -99,8 +99,8 @@ public class SampleCounterTests {
 	
 	@Test
 	public void combineSets(){
-		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1-2-Q1-Q2");
-		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3-4-Q3-Q4");
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_2_Q1_Q2");
+		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3_4_Q3_Q4");
 		
 		SampleSetsCounter set1 = new SampleSetsCounter();
 		SampleSetsCounter set2 = new SampleSetsCounter();
@@ -134,8 +134,8 @@ public class SampleCounterTests {
 	
 	@Test
 	public void setsToString(){
-		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1-2-Q1-Q2");
-		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3-4-Q3-Q4");
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_2_Q1_Q2");
+		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3_4_Q3_Q4");
 		
 		SampleSetsCounter set1 = new SampleSetsCounter();
 		
@@ -155,9 +155,9 @@ public class SampleCounterTests {
 	
 	@Test
 	public void sortedToString(){
-			IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1-4-Q1-Q4");
-			IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("2-5-Q2-Q5");
-			IndexAndBarcodeKey key3 = new IndexAndBarcodeKey("3-6-Q3-Q6");
+			IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_4_Q1_Q4");
+			IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("2_5_Q2_Q5");
+			IndexAndBarcodeKey key3 = new IndexAndBarcodeKey("3_6_Q3_Q6");
 			
 			SampleSetsCounter set1 = new SampleSetsCounter();
 			

@@ -9,16 +9,24 @@ public class IndexAndBarcodeKey {
 	private String i5, i7;
 	private String p5, p7;
 
-	// - is chosen because it is a natural character in filenames 
-	public static final char FIELD_SEPARATOR = '-'; // this needs to be distinct from MergedRead.KEY_SEPARATOR
+	// _ is chosen because it is a natural character in filenames
+	// and it is not contained in any of the index or barcode names  
+	public static final char FIELD_SEPARATOR = '_'; // this needs to be distinct from MergedRead.KEY_SEPARATOR
 	private static String INDEX_SEPARATOR;
 	private static String INDEX_SEPARATOR_REGEX;
+	private static final String FIELD_SEPARATOR_STRING = String.valueOf(FIELD_SEPARATOR);
 	static{
 		INDEX_SEPARATOR = String.valueOf(BarcodeMatcher.INDEX_DELIMITER);
 		INDEX_SEPARATOR_REGEX = "\\" + INDEX_SEPARATOR;
 	}
 	
 	public IndexAndBarcodeKey(String i5, String i7, String p5, String p7){
+		if(i5.contains(FIELD_SEPARATOR_STRING)
+				|| i7.contains(FIELD_SEPARATOR_STRING)
+				|| p5.contains(FIELD_SEPARATOR_STRING)
+				|| i5.contains(FIELD_SEPARATOR_STRING)){
+			throw new IllegalArgumentException("Index or barcode contains illegal separator character " + FIELD_SEPARATOR);
+		}
 		this.i5 = i5;
 		this.i7 = i7;
 		this.p5 = p5;
@@ -34,8 +42,6 @@ public class IndexAndBarcodeKey {
 		p7 = fields[3];
 	}
 	
-	// TODO review this format
-	// Consider using JSON, or another more flexible format
 	@Override
 	public String toString(){
 		StringBuilder b = new StringBuilder();
