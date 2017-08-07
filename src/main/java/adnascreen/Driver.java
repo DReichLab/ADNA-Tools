@@ -13,7 +13,7 @@ import org.apache.commons.cli.ParseException;
  */
 public class Driver {
 
-	public static void main(String[] args) throws ParseException, IOException {
+	public static void main(String[] args) throws ParseException, IOException, java.text.ParseException {
 		String command = args[0];
 		String [] remainingArgs = Arrays.copyOfRange(args, 1, args.length);
 		switch(command.toLowerCase()){
@@ -34,6 +34,9 @@ public class Driver {
 			break;
 		case "softclip":
 			SoftClip.main(remainingArgs);
+			break;
+		case "assignreadgroups":
+			AssignReadGroups.main(remainingArgs);
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
