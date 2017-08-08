@@ -91,7 +91,11 @@ public class BarcodeMatcher {
 					throw new IllegalArgumentException("barcode length mismatch");
 				// if there is more than one barcode in this set, add index within set 
 				String augmentedLabel = (barcodeStrings.length > 1) ? label + INDEX_DELIMITER + index++ : label;
-				referenceBarcodeToLabel.put(new DNASequence(barcode), augmentedLabel);
+				DNASequence barcodeSequence = new DNASequence(barcode);
+				if(referenceBarcodeToLabel.containsKey(barcodeSequence))
+					throw new IllegalArgumentException("barcodes must be unique");
+				else
+					referenceBarcodeToLabel.put(barcodeSequence, augmentedLabel);
 			}
 		}
 		if(clearCaches){
