@@ -82,7 +82,7 @@ public class BarcodeMatcherTests {
 	public void file_barcodes(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("barcodes").getPath();
+			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
 			
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 			String result;
