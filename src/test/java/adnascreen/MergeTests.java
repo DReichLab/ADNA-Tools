@@ -112,7 +112,7 @@ public class MergeTests {
 	public void MergeSequencesPartialOverlap(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("barcodes").getPath();
+			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 
 			BarcodeMatcher indexMatcher = new BarcodeMatcher();
@@ -161,7 +161,7 @@ public class MergeTests {
 	public void overlappingMerge(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("barcodes").getPath();
+			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 
 			BarcodeMatcher indexMatcher = new BarcodeMatcher();

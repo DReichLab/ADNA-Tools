@@ -43,7 +43,7 @@ public class IndexMatcherTests {
 	@Test
 	public void i7_search(){
 		ClassLoader classLoader = getClass().getClassLoader();
-		String filename = classLoader.getResource("i7").getPath();
+		String filename = classLoader.getResource("P7indices_Reich20170725").getPath();
 		try{
 			BarcodeMatcher indexMatcher = new BarcodeMatcher(filename, 1);
 			DNASequence queryExact = new DNASequence("TCGCAGG");
@@ -52,6 +52,30 @@ public class IndexMatcherTests {
 			assertEquals(expectedLabel, result);
 			
 			DNASequence queryOffByOne = new DNASequence("TCGCAGT");
+			result = indexMatcher.find(queryOffByOne);
+			assertEquals(expectedLabel, result);
+			
+			// repeat for cache
+			result = indexMatcher.find(queryOffByOne);
+			assertEquals(expectedLabel, result);
+		}
+		catch(IOException e){
+			fail();
+		}
+	}
+	
+	@Test
+	public void i5_search(){
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("P5indices_Reich20170725").getPath();
+		try{
+			BarcodeMatcher indexMatcher = new BarcodeMatcher(filename, 1);
+			DNASequence queryExact = new DNASequence("CCTGCGA");
+			String expectedLabel = "1";
+			String result = indexMatcher.find(queryExact);
+			assertEquals(expectedLabel, result);
+			
+			DNASequence queryOffByOne = new DNASequence("CCTGCGC");
 			result = indexMatcher.find(queryOffByOne);
 			assertEquals(expectedLabel, result);
 			
