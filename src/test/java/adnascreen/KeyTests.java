@@ -46,9 +46,18 @@ public class KeyTests {
 	
 	@Test
 	public void nullValues(){
-		IndexAndBarcodeKey key = new IndexAndBarcodeKey(i5, i7, p5, null);
-		assertNotNull(key.toString());
-		IndexAndBarcodeKey flattened = key.flatten();
-		assertNotNull(flattened.toString());
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey(i5, i7, p5, null);
+		assertNotNull(key1.toString());
+		IndexAndBarcodeKey flattened1 = key1.flatten();
+		assertNotNull(flattened1.toString());
+		assertEquals(key1, flattened1);
+		
+		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey(i5, i7, null, p7);
+		assertNotNull(key2.toString());
+		IndexAndBarcodeKey flattened2 = key2.flatten();
+		assertNotNull(flattened2.toString());
+		assertEquals(key2, flattened2);
+		
+		assertNotEquals(key1, key2);
 	}
 }

@@ -21,10 +21,10 @@ public class IndexAndBarcodeKey {
 	}
 	
 	public IndexAndBarcodeKey(String i5, String i7, String p5, String p7){
-		if(i5.contains(FIELD_SEPARATOR_STRING)
-				|| i7.contains(FIELD_SEPARATOR_STRING)
-				|| p5.contains(FIELD_SEPARATOR_STRING)
-				|| i5.contains(FIELD_SEPARATOR_STRING)){
+		if(i5 != null && i5.contains(FIELD_SEPARATOR_STRING)
+				|| i7 != null && i7.contains(FIELD_SEPARATOR_STRING)
+				|| p5 != null && p5.contains(FIELD_SEPARATOR_STRING)
+				|| p7 != null && p7.contains(FIELD_SEPARATOR_STRING)){
 			throw new IllegalArgumentException("Index or barcode contains illegal separator character " + FIELD_SEPARATOR);
 		}
 		this.i5 = i5;
@@ -73,7 +73,7 @@ public class IndexAndBarcodeKey {
 	 * @param toFlatten label, potentially with delimiter and index
 	 * @return label with delimiter and index removed
 	 */
-	private static String flatten(String toFlatten){
+	public static String flatten(String toFlatten){
 		if(toFlatten != null && toFlatten.contains(INDEX_SEPARATOR)){
 			String [] fields = toFlatten.split(INDEX_SEPARATOR_REGEX);
 			return fields[0];

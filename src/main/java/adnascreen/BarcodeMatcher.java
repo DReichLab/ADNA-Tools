@@ -5,11 +5,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Find a best match for a query within a specified tolerance (maximum Hamming distance)
@@ -22,15 +25,17 @@ import java.util.Set;
 public class BarcodeMatcher {
 	private Map<DNASequence, String> referenceBarcodeToLabel;
 	private Map<DNASequence, Optional<String> >cache;
-	private Set<String> labels;
+	private Map<String, Integer> labelToBarcodeLength;
+	private SortedSet<Integer> barcodeLengthsSet;
+	private List<Integer> barcodeLengths;
 	private int maxHammingDistance;
-	private int barcodeLength = -1;
 	public final static char INDEX_DELIMITER = '.';
 	
 	public BarcodeMatcher(){
 		referenceBarcodeToLabel = new HashMap<DNASequence, String>();
 		cache = new HashMap<DNASequence, Optional<String> >();
-		labels = new HashSet<String>();
+		labelToBarcodeLength = new HashMap<String, Integer>();
+		barcodeLengthsSet = new TreeSet<Integer>();
 	}
 	
 	public BarcodeMatcher(String filename, int maxHammingDistance) throws IOException{
@@ -39,10 +44,6 @@ public class BarcodeMatcher {
 		loadFile(filename);
 	}
 	
-	public int getBarcodeLength(){
-		return barcodeLength;
-	}
-
 	/**
 	 * 
 	 * @param filename each line of file contains colon-delimited barcodes followed by whitespace and label
@@ -62,6 +63,7 @@ public class BarcodeMatcher {
 			}
 			cache.clear();
 			seedCache();
+			barcodeLengths = null;
 		}
 	}
 	
@@ -76,16 +78,16 @@ public class BarcodeMatcher {
 		String [] barcodeStrings = barcodeSetString.split(":");
 		// check that barcodes are of the same length
 		if(barcodeStrings.length > 0){
+			int barcodeLength = -1;
 			// enforce unique labels
-			if(labels.contains(label))
+			if(labelToBarcodeLength.containsKey(label))
 				throw new IllegalArgumentException("labels must be unique");
 			if(label.contains(String.valueOf(INDEX_DELIMITER)))
 				throw new IllegalArgumentException("Barcode labels can not contain delimiter " + INDEX_DELIMITER);
-			labels.add(label);
 			// add reference sets for this label
 			int index = 1;
 			for(String barcode : barcodeStrings){
-				if(barcodeLength == -1) // set initial length once
+				if(barcodeLength == -1)
 					barcodeLength = barcode.length();
 				if(barcode.length() != barcodeLength) // check all lengths against the first
 					throw new IllegalArgumentException("barcode length mismatch");
@@ -97,10 +99,15 @@ public class BarcodeMatcher {
 				else
 					referenceBarcodeToLabel.put(barcodeSequence, augmentedLabel);
 			}
+			if(barcodeLength > 0){
+				labelToBarcodeLength.put(label, barcodeLength);
+				barcodeLengthsSet.add(barcodeLength);
+			}
 		}
 		if(clearCaches){
 			cache.clear();
 			seedCache();
+			barcodeLengths = null;
 		}
 	}
 	
@@ -174,5 +181,33 @@ public class BarcodeMatcher {
 		if(maxHammingDistance < this.maxHammingDistance)
 			cache.clear();
 		this.maxHammingDistance = maxHammingDistance;
+	}
+	
+	/**
+	 * 
+	 * @param label
+	 * @return length of barcode(s) corresponding to this label
+	 */
+	public int getBarcodeLength(String label){
+		String flattenedLabel = IndexAndBarcodeKey.flatten(label);
+		Integer length = labelToBarcodeLength.get(flattenedLabel);
+		return (length != null) ? length : 0;
+	}
+	
+	private void cacheBarcodeLengths(){
+		List<Integer> lengths = new ArrayList<Integer>(barcodeLengthsSet);
+		Collections.reverse(lengths);
+		barcodeLengths = lengths;
+	}
+	
+	/**
+	 * Get a list of barcode lengths sorted in descending order.
+	 * Do NOT modify this list without copying it. 
+	 * @return 
+	 */
+	public List<Integer> getBarcodeLengths(){
+		if(barcodeLengths == null)
+			cacheBarcodeLengths();
+		return barcodeLengths;
 	}
 }

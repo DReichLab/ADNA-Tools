@@ -3,6 +3,7 @@ package adnascreen;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -150,5 +151,22 @@ public class BarcodeMatcherTests {
 		barcodeMatcher.addReferenceSet(barcodeSet2, label2);
 		
 		fail("Barcode was allowed twice");
+	}
+	
+	@Test
+	public void basicLength(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		final int expectedLength = 7;
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.setMaxHammingDistance(1);
+
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		
+		List<Integer> lengths = barcodeMatcher.getBarcodeLengths();
+		assertEquals(1, lengths.size());
+		assertEquals(expectedLength, (int) lengths.get(0));
+		assertEquals(expectedLength, barcodeMatcher.getBarcodeLength(label));
 	}
 }

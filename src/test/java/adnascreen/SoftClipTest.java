@@ -4,8 +4,6 @@ import static org.junit.Assert.*;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
-import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,7 +18,6 @@ import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.TextCigarCodec;
-import htsjdk.samtools.util.CigarUtil;
 
 public class SoftClipTest {
 	@Test

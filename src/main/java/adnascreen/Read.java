@@ -43,7 +43,7 @@ public class Read {
 	}
 	
 	public Read(FastqRecord record){
-		this.header = new FASTQHeader(record.getReadHeader());
+		this.header = new FASTQHeader(record.getReadName());
 		this.dna = new DNASequence(record.getReadString());
 		this.quality = new QualitySequence(record.getBaseQualityString());
 	}

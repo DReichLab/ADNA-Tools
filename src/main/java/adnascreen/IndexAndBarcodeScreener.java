@@ -106,9 +106,11 @@ public class IndexAndBarcodeScreener {
 				MergedRead merged = null;
 				if(key != null){
 					keyFlattened = key.flatten();
+					int r1BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP5Label());
+					int r2BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP7Label());
 					sampleSetCounter.increment(keyFlattened, RAW);
 					merged = MergedRead.mergePairedSequences(r1, r2, key, 
-						barcodes.getBarcodeLength(), maxPenalty, minOverlap, minMergedLength);
+							r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlap, minMergedLength);
 					// read group consistency
 					String readGroupForThisRead = r1.getFASTQHeader().getReadGroupElements();
 					if(readGroup == null){

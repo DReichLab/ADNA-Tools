@@ -70,23 +70,26 @@ public class MergedRead extends Read{
 		// Index 1 is i7, Index 2 is i5
 		DNASequence i7IndexRaw = i1.getDNASequence();
 		DNASequence i5IndexRaw = i2.getDNASequence();
-
-		int barcodeLength = barcodes.getBarcodeLength();
-		DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, barcodeLength);
-		DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, barcodeLength);
-
+		
 		// match indices and barcodes against the known sets to see whether we should process this read pair
 		String i5IndexLabel = i5Indices.find(i5IndexRaw);
 		String i7IndexLabel = i7Indices.find(i7IndexRaw);
-		String p5BarcodeLabel = barcodes.find(p5BarcodeRaw);
-		String p7BarcodeLabel = barcodes.find(p7BarcodeRaw);
 
-		if(i5IndexLabel != null 
-				&& i7IndexLabel != null
-				&& p5BarcodeLabel != null
-				&& p7BarcodeLabel != null){ // process this read pair, which may match an experiment
-			return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
-		}		
+		if(i5IndexLabel != null && i7IndexLabel != null){
+			List<Integer> barcodeLengths = barcodes.getBarcodeLengths();
+			for(int barcodeLength : barcodeLengths){
+				DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, barcodeLength);
+				DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, barcodeLength);
+
+				String p5BarcodeLabel = barcodes.find(p5BarcodeRaw);
+				String p7BarcodeLabel = barcodes.find(p7BarcodeRaw);
+
+				// process this read pair, which may match an experiment
+				if(p5BarcodeLabel != null && p7BarcodeLabel != null){ 
+					return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
+				}
+			}
+		}
 		return null;
 	}
 
@@ -103,14 +106,14 @@ public class MergedRead extends Read{
 	 * @return merged sequence, or null if failure to merge
 	 */
 	public static MergedRead mergePairedSequences(Read r1, Read r2, IndexAndBarcodeKey key, 
-			int barcodeLength, int maxPenalty, int minOverlap, int minMergedLength){
+			int r1BarcodeLength, int r2BarcodeLength, int maxPenalty, int minOverlap, int minMergedLength){
 		// check for metadata consistency
 		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader() ) )
 			throw new IllegalArgumentException("FASTQ metadata mismatch");
 
 		// trim leading barcodes and trailing N's
-		Read trimmedR1 = r1.subsequence(barcodeLength, r1.length()).trimTrailingUnknownBases();
-		Read trimmedR2 = r2.subsequence(barcodeLength, r2.length()).trimTrailingUnknownBases();
+		Read trimmedR1 = r1.subsequence(r1BarcodeLength, r1.length()).trimTrailingUnknownBases();
+		Read trimmedR2 = r2.subsequence(r2BarcodeLength, r2.length()).trimTrailingUnknownBases();
 		// find best alignment of forward read and reverse-complemented reverse read
 		Read reverseComplementR2 = trimmedR2.reverseComplement();
 		List<Integer> alignments = Read.findBestAlignment(trimmedR1, reverseComplementR2, maxPenalty, 
