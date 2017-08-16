@@ -8,10 +8,15 @@ import java.util.List;
 import org.junit.Test;
 
 public class MergeTests {
-	static int maxPenalty = 3;
-	static int minOverlapLength = 10;
-	static int maxPositions = 4;
-	static int minResultLength = 30;
+	static final int maxPenalty = 3;
+	static final int minOverlapLength = 10;
+	static final int maxPositions = 4;
+	static final int minResultLength = 30;
+	
+	static final int mismatchPenaltyHigh = 3;
+	static final int mismatchPenaltyLow = 1;
+	static final int mismatchBaseQualityThreshold = 20;
+	
 	
 	@Test
 	public void penaltyAndSmallOverlap(){
@@ -21,17 +26,21 @@ public class MergeTests {
 		
 		// overlap starting from A's should be full overlap
 		boolean expected = true;
-		boolean result = Read.alignmentAssessment(r1, r2, 12, 0, 5, 10);
+		boolean result = Read.alignmentAssessment(r1, r2, 12, 0, 5, 10, 
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertEquals(expected, result);
-		result = Read.alignmentAssessment(r1, r2, 12, 0, 10, 3);
+		result = Read.alignmentAssessment(r1, r2, 12, 0, 10, 3,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertEquals(expected, result);
 		
 		expected = false;
-		result = Read.alignmentAssessment(r1, r2, 4, 0, 5, 10);
+		result = Read.alignmentAssessment(r1, r2, 4, 0, 5, 10,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertEquals(expected, result);
 		
 		int thisShortMinResultLength = 15; // this test's reads have length 22, which is too short for standard 30 length
-		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, thisShortMinResultLength, maxPositions);
+		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, thisShortMinResultLength, maxPositions,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertEquals(1, alignments.size());
 		int offset = alignments.get(0);
 		assertEquals(0, offset);
@@ -44,7 +53,8 @@ public class MergeTests {
 				"CTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC",
 				"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
 		
-		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, minResultLength, maxPositions);
+		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, minResultLength, maxPositions,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertEquals(1, alignments.size());
 		int offset = alignments.get(0);
 		assertEquals(0, offset);
@@ -151,7 +161,8 @@ public class MergeTests {
 			assertEquals(r1BarcodeLength, 7);
 			assertEquals(r2BarcodeLength, 7);
 			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, key, 
-					r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlapLength, minResultLength);
+					r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlapLength, minResultLength,
+					mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 			
 			assertEquals(expectedDNA, merged.getDNASequence());
 			assertEquals(expectedQuality, merged.getQualitySequence());
@@ -204,7 +215,8 @@ public class MergeTests {
 			assertEquals(r1BarcodeLength, 7);
 			assertEquals(r2BarcodeLength, 7);
 			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, key, 
-					r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlapLength, minResultLength);
+					r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlapLength, minResultLength,
+					mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 			
 			assertEquals(expectedDNA, merged.getDNASequence());
 			assertEquals(expectedQuality, merged.getQualitySequence());
@@ -224,7 +236,8 @@ public class MergeTests {
 		Read r1 = new Read("", "ACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTG", qualityString);
 		Read r2 = new Read("", "CTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGACTGA", qualityString);
 		
-		List<Integer> alignments = Read.findBestAlignment(r1, r2, maxPenalty, minOverlapLength, minResultLength, maxPositions);
+		List<Integer> alignments = Read.findBestAlignment(r1, r2, maxPenalty, minOverlapLength, minResultLength, maxPositions,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertTrue(alignments.size() > 1);
 	}
 }

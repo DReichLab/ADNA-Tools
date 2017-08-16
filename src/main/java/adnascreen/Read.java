@@ -109,10 +109,6 @@ public class Read {
 		return trimmedRead;
 	}
 	
-	private final static int LOW_PENALTY = 1;
-	private final static int HIGH_PENALTY = 3;
-	private final static int QUALITY_THRESHOLD = 20;
-	
 	/**
 	 * Evaluate the alignment of two read DNA sequences with offsets
 	 * Any reverse complement operation should be called before using this method. 
@@ -120,12 +116,12 @@ public class Read {
 	 * @param b
 	 * @param aOffset
 	 * @param bOffset
-	 * @param minLength
-	 * @param maxPenalty
-	 * @return index of overlap starting from initial position where penalty crosses threshold, 
-	 * or maximum overlap index if penalty is not reached
+	 * @param minOverlapLength
+	 * @param maxPenalty defines the max penalty density with minLength
+	 * @return true if at or below max penalty density, false otherwise
 	 */
-	public static boolean alignmentAssessment(Read a, Read b, int aOffset, int bOffset, int minLength, int maxPenalty){
+	public static boolean alignmentAssessment(Read a, Read b, int aOffset, int bOffset, int minOverlapLength, int maxPenalty,
+			int mismatchPenaltyHigh, int mismatchPenaltyLow, int mismatchBaseQualityThreshold){
 		int penalty = 0;
 		for(int i = 0; (i + aOffset) < a.length() && (i + bOffset) < b.length(); i++){
 			int a_i = i + aOffset;
@@ -134,19 +130,20 @@ public class Read {
 			char aBase = a.dna.charAt(a_i);
 			char bBase = b.dna.charAt(b_i);
 			if(aBase != bBase){
-				boolean highConfidence = a.quality.getQuality(a_i) >= QUALITY_THRESHOLD 
-						&& b.quality.getQuality(b_i) >= QUALITY_THRESHOLD;
-				penalty += highConfidence ? HIGH_PENALTY : LOW_PENALTY;
+				boolean highConfidence = a.quality.getQuality(a_i) >= mismatchBaseQualityThreshold 
+						&& b.quality.getQuality(b_i) >= mismatchBaseQualityThreshold;
+				penalty += highConfidence ? mismatchPenaltyHigh : mismatchPenaltyLow;
 				// cutoff
-				if(i <= minLength && penalty > maxPenalty) return false;
-				if(i > minLength && penalty * minLength > i * maxPenalty) return false;
+				if(i <= minOverlapLength && penalty > maxPenalty) return false;
+				if(i > minOverlapLength && penalty * minOverlapLength > i * maxPenalty) return false;
 			}
 		}
 		return true;
 	}
 	
 	public static List<Integer> findBestAlignment(Read a, Read b, int maxPenalty, int minOverlapLength, 
-			int minResultLength, int maxPositions){
+			int minResultLength, int maxPositions,
+			int mismatchPenaltyHigh, int mismatchPenaltyLow, int mismatchBaseQualityThreshold){
 		List<Integer> alignments = new LinkedList<Integer>();
 		
 		// aOffset and bOffset are the positions to start comparisons in their respective sequences
@@ -168,7 +165,8 @@ public class Read {
 				aOffset = 0;
 				bOffset = Math.abs(offset);
 			}
-			boolean alignmentAtThisOverlap = alignmentAssessment(a, b, aOffset, bOffset, minOverlapLength, maxPenalty);
+			boolean alignmentAtThisOverlap = alignmentAssessment(a, b, aOffset, bOffset, minOverlapLength, maxPenalty,
+					mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 			if(alignmentAtThisOverlap){
 				alignments.add(offset);
 				if(alignments.size() >= maxPositions){

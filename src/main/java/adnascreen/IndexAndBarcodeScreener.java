@@ -42,7 +42,10 @@ public class IndexAndBarcodeScreener {
 				"File containing one valid i7 index sets per line");
 		options.addRequiredOption("b", "barcodes", true, 
 				"File containing one valid barcodes sets per line with ':'-delimited elements");
-		options.addOption("p", "mismatch-penalty", true, "Penalty for mismatch while aligning merge");
+		options.addOption("m", "mismatch-penalty-max", true, "Max allowable penalty for mismatch while aligning for merge");
+		options.addOption("j", "mismatch-penalty-high", true, "Penalty for mismatch at high-quality bases while aligning for merge");
+		options.addOption("k", "mismatch-penalty-low", true, "Penalty for mismatch at non-high-quality bases while aligning for merge");
+		options.addOption("q", "mismatch-quality-threshold", true, "Threshold for determining penalty for mismatch while aligning merge");
 		options.addOption("o", "minimum-overlap", true, "Minimum bases of overlap for paired reads to merge");
 		options.addOption("l", "minimum-length", true, "Minimum length for output merged reads");
 		options.addOption("n", "number-output-files", true, "Number of output files to divide merged reads between");
@@ -54,7 +57,10 @@ public class IndexAndBarcodeScreener {
 		BarcodeMatcher barcodes = null;
 		// We keep statistics for each 4-tuple of indices and barcodes
 		SampleSetsCounter sampleSetCounter = new SampleSetsCounter();
-		final int maxPenalty = Integer.valueOf(commandLine.getOptionValue('p', "3"));
+		final int maxPenalty = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-max", "3"));
+		final int mismatchPenaltyHigh = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-high", "3"));
+		final int mismatchPenaltyLow = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-low", "1"));
+		final int mismatchBaseQualityThreshold = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-threshold", "20"));
 		final int minOverlap = Integer.valueOf(commandLine.getOptionValue('o', "15"));
 		final int minMergedLength = Integer.valueOf(commandLine.getOptionValue('l', "30"));
 		final int numOutputFiles = Integer.valueOf(commandLine.getOptionValue('n', "25"));
@@ -110,7 +116,8 @@ public class IndexAndBarcodeScreener {
 					int r2BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP7Label());
 					sampleSetCounter.increment(keyFlattened, RAW);
 					merged = MergedRead.mergePairedSequences(r1, r2, key, 
-							r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlap, minMergedLength);
+							r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlap, minMergedLength,
+							mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 					// read group consistency
 					String readGroupForThisRead = r1.getFASTQHeader().getReadGroupElements();
 					if(readGroup == null){

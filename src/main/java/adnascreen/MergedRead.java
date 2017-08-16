@@ -106,7 +106,8 @@ public class MergedRead extends Read{
 	 * @return merged sequence, or null if failure to merge
 	 */
 	public static MergedRead mergePairedSequences(Read r1, Read r2, IndexAndBarcodeKey key, 
-			int r1BarcodeLength, int r2BarcodeLength, int maxPenalty, int minOverlap, int minMergedLength){
+			int r1BarcodeLength, int r2BarcodeLength, int maxPenalty, int minOverlap, int minMergedLength,
+			int mismatchPenaltyHigh, int mismatchPenaltyLow, int mismatchBaseQualityThreshold){
 		// check for metadata consistency
 		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader() ) )
 			throw new IllegalArgumentException("FASTQ metadata mismatch");
@@ -117,7 +118,8 @@ public class MergedRead extends Read{
 		// find best alignment of forward read and reverse-complemented reverse read
 		Read reverseComplementR2 = trimmedR2.reverseComplement();
 		List<Integer> alignments = Read.findBestAlignment(trimmedR1, reverseComplementR2, maxPenalty, 
-				minOverlap, minMergedLength, maxPassingAlignmentsToConsider);
+				minOverlap, minMergedLength, maxPassingAlignmentsToConsider,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		if(alignments.size() == 1){ // unambiguous merge
 			// merge reads
 			Read merged = mergeReads(trimmedR1, reverseComplementR2, alignments.get(0));
