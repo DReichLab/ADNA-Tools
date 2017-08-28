@@ -60,4 +60,26 @@ public class KeyTests {
 		
 		assertNotEquals(key1, key2);
 	}
+	
+	@Test
+	public void indicesOnlyEqual(){
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey(i5, i7, null, null);
+		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey(i5, i7, null, null);
+		assertEquals(key1, key2);
+	}
+	
+	@Test
+	public void indicesOnlySerialization(){
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey(i5, i7, null, null);
+		String serialized = key1.toString();
+		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey(serialized);
+		assertEquals(key1, key2);
+	}
+	
+	@Test
+	public void indicesOnlyFlatten(){
+		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey(i5, i7, null, null);
+		IndexAndBarcodeKey key2 = key1.flatten();
+		assertEquals(key1, key2);
+	}
 }

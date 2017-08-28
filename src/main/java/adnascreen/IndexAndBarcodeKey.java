@@ -38,8 +38,10 @@ public class IndexAndBarcodeKey {
 		String [] fields = keyString.split(regexPattern);
 		i5 = fields[0];
 		i7 = fields[1];
-		p5 = fields[2];
-		p7 = fields[3];
+		// barcodes may be null
+		// split omits trailing empty strings
+		p5 = (fields.length >= 3 && fields[2].length() > 0) ? fields[2] : null;
+		p7 = (fields.length >= 4 && fields[3].length() > 0) ? fields[3] : null;
 	}
 	
 	@Override
@@ -49,9 +51,9 @@ public class IndexAndBarcodeKey {
 		b.append(FIELD_SEPARATOR);
 		b.append(i7);
 		b.append(FIELD_SEPARATOR);
-		b.append(p5);
+		b.append(p5 != null ? p5 : "");
 		b.append(FIELD_SEPARATOR);
-		b.append(p7);
+		b.append(p7 != null ? p7 : "");
 		return b.toString();
 	}
 	

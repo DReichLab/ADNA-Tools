@@ -89,6 +89,7 @@ public class MergedRead extends Read{
 					return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
 				}
 			}
+			return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, null, null);
 		}
 		return null;
 	}

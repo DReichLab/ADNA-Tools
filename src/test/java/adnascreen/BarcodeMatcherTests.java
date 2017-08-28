@@ -169,4 +169,21 @@ public class BarcodeMatcherTests {
 		assertEquals(expectedLength, (int) lengths.get(0));
 		assertEquals(expectedLength, barcodeMatcher.getBarcodeLength(label));
 	}
+	
+	@Test
+	public void lengthNotPresent(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		final int expectedLength = 0;
+		
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.setMaxHammingDistance(1);
+
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		int length = barcodeMatcher.getBarcodeLength("not_present");
+		assertEquals(expectedLength, length);
+		
+		int nullLength = barcodeMatcher.getBarcodeLength(null);
+		assertEquals(expectedLength, nullLength);
+	}
 }
