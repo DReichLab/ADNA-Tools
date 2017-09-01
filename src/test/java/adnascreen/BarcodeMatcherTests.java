@@ -186,4 +186,37 @@ public class BarcodeMatcherTests {
 		int nullLength = barcodeMatcher.getBarcodeLength(null);
 		assertEquals(expectedLength, nullLength);
 	}
+	
+	private DNASequence dnaStringFromInt(int n, int length){
+		final char[] BASES = {'A', 'C', 'G', 'T'}; 
+		StringBuilder b = new StringBuilder();
+		for(int i = 0; i < length; i++){
+			char c = BASES[n % BASES.length];
+			n /= BASES.length;
+			b.append(c);
+		}
+		String dnaString = b.toString();
+		return new DNASequence(dnaString);
+	}
+	
+	//@Test
+	public void barcodeDensity(){
+		try{
+			ClassLoader classLoader = getClass().getClassLoader();
+			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
+			
+			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
+			int notFoundCount = 0;
+			for(int n = 0; n < 16834; n++){
+				DNASequence query = dnaStringFromInt(n, 7);
+				String result = barcodeMatcher.find(query);
+				if(result == null)
+					notFoundCount++;
+			}
+			System.out.println(notFoundCount);
+		}
+		catch(IOException e){
+			fail(e.toString());
+		}
+	}
 }
