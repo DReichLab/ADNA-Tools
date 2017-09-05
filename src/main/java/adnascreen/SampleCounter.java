@@ -7,6 +7,10 @@ import java.util.Map;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 
+/**
+ * SampleCounter is basically a Map with integer counts for values
+ *
+ */
 public class SampleCounter {
 	private Map<String, MutableInt> counters;
 	private List<String> orderedLabels; // labels in order added to print in a specific order

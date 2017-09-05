@@ -9,6 +9,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
+/**
+ * For each experiment key (2 indices and 2 barcodes), keep a SampleCounter of counts with labels
+ *
+ */
 public class SampleSetsCounter {
 	private int raw;
 	private Map<IndexAndBarcodeKey, SampleCounter> sets;

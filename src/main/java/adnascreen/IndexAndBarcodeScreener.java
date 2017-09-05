@@ -2,6 +2,7 @@ package adnascreen;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -51,6 +52,7 @@ public class IndexAndBarcodeScreener {
 		options.addOption("n", "number-output-files", true, "Number of output files to divide merged reads between");
 		options.addOption("h", "hamming-distance", true, "Max hamming distance for index or barcode match");
 		options.addOption("r", "read-group-file", true, "Output file for read group");
+		options.addOption("c", "barcode-count", true, "File containing prior pass's counts of keys with(out) barcodes by index pair to determine whether to demultiplex with barcodes");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -74,9 +76,18 @@ public class IndexAndBarcodeScreener {
 		} catch(IOException e){
 			System.exit(1);
 		}
+		
+		// A previous pass through the data is needed to count the number of paired reads
+		// that demultiplex with barcodes
+		final String barcodeCountStatisticsFilename = commandLine.getOptionValue("barcodeCount", null);
+		SampleSetsCounter barcodeCountStatistics = null;
+		if(barcodeCountStatisticsFilename != null){
+			File barcodeCountStatisticsFile = new File(barcodeCountStatisticsFilename);
+			barcodeCountStatistics = new SampleSetsCounter(barcodeCountStatisticsFile);
+		}
 
 		String[] remainingArgs = commandLine.getArgs();
-		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];;
+		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];
 		try(
 				FileInputStream r1File = new FileInputStream(remainingArgs[0]);
 				FileInputStream r2File = new FileInputStream(remainingArgs[1]);
@@ -105,8 +116,21 @@ public class IndexAndBarcodeScreener {
 				Read i1 = new Read(i1Reader.next());
 				Read i2 = new Read(i2Reader.next());
 				
-				IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1, i2, 
-						i5Indices, i7Indices, barcodes);
+				// Lookup by index pair whether barcodes are used
+				IndexAndBarcodeKey keyIndexOnly = MergedRead.findExperimentKey(r1, r2, i1, i2, 
+						i5Indices, i7Indices, null);
+				boolean useBarcodes = true;
+				if(barcodeCountStatistics != null){
+					// We assume that for a given index pair, barcodes are either always used or always not
+					// We use a simple majority to determine whether barcodes are used for this index pair
+					useBarcodes = barcodeCountStatistics.get(keyIndexOnly, BarcodeCount.WITHOUT_BARCODES)
+							<= barcodeCountStatistics.get(keyIndexOnly, BarcodeCount.WITH_BARCODES);
+				}
+				
+				// update key if barcodes are used, otherwise reuse the index pair
+				IndexAndBarcodeKey key = useBarcodes ? MergedRead.findExperimentKey(r1, r2, i1, i2, 
+						i5Indices, i7Indices, barcodes) : keyIndexOnly;
+				
 				IndexAndBarcodeKey keyFlattened = null;
 				sampleSetCounter.increment(); // statistics recording
 				MergedRead merged = null;

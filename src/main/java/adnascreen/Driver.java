@@ -17,6 +17,9 @@ public class Driver {
 		String command = args[0];
 		String [] remainingArgs = Arrays.copyOfRange(args, 1, args.length);
 		switch(command.toLowerCase()){
+		case "barcodecount":
+			BarcodeCount.main(remainingArgs);
+			break;
 		case "indexandbarcodescreener":
 			IndexAndBarcodeScreener.main(remainingArgs);
 			break;

@@ -56,7 +56,7 @@ public class MergedRead extends Read{
 	 * @param i2 index read for i5
 	 * @param i5Indices i5 index must be found here to merge
 	 * @param i7Indices i7 index must be found here to merge
-	 * @param barcodes Inline barcodes must be found here to merge
+	 * @param barcodes Inline barcodes r1 and r2. If null, no barcodes will be assumed
 	 * @return key of 4-tuple of indices and barcodes, or null if all four of these are not found. 
 	 */
 	public static IndexAndBarcodeKey findExperimentKey(Read r1, Read r2, Read i1, Read i2, 
@@ -76,17 +76,19 @@ public class MergedRead extends Read{
 		String i7IndexLabel = i7Indices.find(i7IndexRaw);
 
 		if(i5IndexLabel != null && i7IndexLabel != null){
-			List<Integer> barcodeLengths = barcodes.getBarcodeLengths();
-			for(int barcodeLength : barcodeLengths){
-				DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, barcodeLength);
-				DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, barcodeLength);
+			if(barcodes != null){
+				List<Integer> barcodeLengths = barcodes.getBarcodeLengths();
+				for(int barcodeLength : barcodeLengths){
+					DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, barcodeLength);
+					DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, barcodeLength);
 
-				String p5BarcodeLabel = barcodes.find(p5BarcodeRaw);
-				String p7BarcodeLabel = barcodes.find(p7BarcodeRaw);
+					String p5BarcodeLabel = barcodes.find(p5BarcodeRaw);
+					String p7BarcodeLabel = barcodes.find(p7BarcodeRaw);
 
-				// process this read pair, which may match an experiment
-				if(p5BarcodeLabel != null && p7BarcodeLabel != null){ 
-					return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
+					// process this read pair, which may match an experiment
+					if(p5BarcodeLabel != null && p7BarcodeLabel != null){ 
+						return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, p5BarcodeLabel, p7BarcodeLabel);
+					}
 				}
 			}
 			return new IndexAndBarcodeKey(i5IndexLabel, i7IndexLabel, null, null);

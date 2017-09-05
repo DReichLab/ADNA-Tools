@@ -1,8 +1,9 @@
 package adnascreen;
 
 /**
- * 
- * 
+ * This class allows demultiplexing of experiments. 
+ * The IndexAndBarcodeKey comprises a p5 index (i5), a p7 index (i7), a p5 barcode (p5), and a p7 barcode (p7)
+ * The p5 and p7 barcodes may optionally be null. 
  */
 public class IndexAndBarcodeKey {
 	// labels
