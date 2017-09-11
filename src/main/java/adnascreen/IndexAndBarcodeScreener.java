@@ -153,7 +153,8 @@ public class IndexAndBarcodeScreener {
 					}
 				}
 				// output to file and more statistics recording
-				if(merged != null){
+				// only reads that pass Illumina's pass filter (PF) [aka chastity filter]
+				if(merged != null && !merged.getFASTQHeader().isFiltered()){
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
