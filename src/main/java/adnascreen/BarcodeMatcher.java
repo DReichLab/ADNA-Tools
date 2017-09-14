@@ -136,12 +136,14 @@ public class BarcodeMatcher {
 		int bestDistance = maxHammingDistance + 1;
 		String bestLabel = null;
 		for(DNASequence barcode : referenceBarcodeToLabel.keySet()){
-			int distance = query.hammingDistance(barcode);
-			if(distance < bestDistance){
-				bestDistance = distance;
-				bestLabel = referenceBarcodeToLabel.get(barcode);
-				if(distance == 0){
-					return bestLabel;
+			if(query.length() == barcode.length()){
+				int distance = query.hammingDistance(barcode);
+				if(distance < bestDistance){
+					bestDistance = distance;
+					bestLabel = referenceBarcodeToLabel.get(barcode);
+					if(distance == 0){
+						return bestLabel;
+					}
 				}
 			}
 		}
