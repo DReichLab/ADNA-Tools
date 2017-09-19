@@ -38,10 +38,12 @@ public class DemultiplexSAM {
 		Options options = new Options();
 		options.addRequiredOption("s", "statisticsFilename", true, "Statistics file sorted in order of output");
 		options.addOption("n", "numSamples", true, "Number of top samples to output");
+		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
 		options.addOption("b", "BAM", false, "Use bam files for output");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
+		int minimumReads = Integer.valueOf(commandLine.getOptionValue('r', "1"));
 		boolean useBAM = commandLine.hasOption('b');
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		
@@ -61,10 +63,22 @@ public class DemultiplexSAM {
 				String entryLine = reader.readLine();
 				String [] fields = entryLine.split("\t");
 				String keyString = fields[0];
-				IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-				outputFiles.put(key, null); // mark this key for output later
-				// we delay opening SAM/BAM file writer until the SAM/BAM header is available
-				// this is after we have opened the first SAM/BAM input file
+				
+				// locate the raw label and its count
+				int rawIndex = 1;
+				while(rawIndex < fields.length && !fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
+					rawIndex += 2;
+				}
+				
+				if(rawIndex < fields.length && fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
+					int rawCount = Integer.valueOf(fields[rawIndex + 1]);
+					if(rawCount >= minimumReads){
+						IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+						outputFiles.put(key, null); // mark this key for output later
+						// we delay opening SAM/BAM file writer until the SAM/BAM header is available
+						// this is after we have opened the first SAM/BAM input file
+					}
+				}
 			}
 		}
 		SampleSetsCounter statistics = new SampleSetsCounter(f);
