@@ -20,7 +20,7 @@ public class FASTQHeader {
 	private int read;
 	private boolean isFiltered;
 	private int controlNumber;
-	private int index;
+	private String index;
 	
 	// used only for separating fields in getReadGroup results 
 	public static final char READ_GROUP_FIELD_DELIMITER = '_';
@@ -63,7 +63,7 @@ public class FASTQHeader {
 			throw new IllegalArgumentException("Unexpected value of isFiltered in FASTQ header " + isFilteredString);		
 		}
 		controlNumber = Integer.valueOf(right[2]);
-		index = Integer.valueOf(right[3]);
+		index = right[3];
 	}
 	
 	@Override
@@ -119,7 +119,7 @@ public class FASTQHeader {
 				// read is not compared
 				&& this.isFiltered == other.isFiltered
 				&& this.controlNumber == other.controlNumber
-				&& this.index == other.index;
+				&& this.index.equals(other.index);
 	}
 	
 	@Override
@@ -175,7 +175,7 @@ public class FASTQHeader {
 		return controlNumber;
 	}
 
-	public int getIndex() {
+	public String getIndex() {
 		return index;
 	}
 	

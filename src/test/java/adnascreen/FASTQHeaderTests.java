@@ -58,4 +58,13 @@ public class FASTQHeaderTests {
 		String s = h1.getReadGroupElements();
 		assertEquals(expected, s);
 	}
+	
+	@Test
+	public void hasIndex(){
+		String header = "@NS500217:33:H0NW5AGXX:1:11101:10568:3456 1:N:0:TAATTCG+GAAATAA";
+		FASTQHeader h1 = new FASTQHeader(header);
+		String expected = "TAATTCG+GAAATAA";
+		String s = h1.getIndex();
+		assertEquals(expected, s);
+	}
 }
