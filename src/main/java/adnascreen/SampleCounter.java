@@ -1,5 +1,6 @@
 package adnascreen;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -65,6 +66,14 @@ public class SampleCounter {
 			return count.intValue();
 		}
 		return 0;
+	}
+	
+	/**
+	 * 
+	 * @return 
+	 */
+	public List<String> getLabelList(){
+		return new ArrayList<String>(orderedLabels);
 	}
 	
 	/**

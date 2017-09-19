@@ -65,7 +65,7 @@ public class BarcodeCount {
 				Read i2 = new Read(i2Reader.next());
 				
 				IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1, i2, 
-						i5Indices, i7Indices, barcodes);
+						i5Indices, i7Indices, barcodes, -1);
 				IndexAndBarcodeKey keyFlattened = null;
 				sampleSetCounter.increment(); // statistics recording
 				if(key != null){
@@ -75,9 +75,10 @@ public class BarcodeCount {
 					String i7 = keyFlattened.getI7Label();
 					String p5 = keyFlattened.getP5Label();
 					String p7 = keyFlattened.getP7Label();
+					//int barcodeLength = barcodes.getBarcodeLength(p5);
 					IndexAndBarcodeKey keyIndexOnly = new IndexAndBarcodeKey(i5, i7, null, null);
 					if(p5 != null && p7 != null){
-						sampleSetCounter.increment(keyIndexOnly, WITH_BARCODES);
+						sampleSetCounter.increment(keyIndexOnly, p5 + "_" + p7);
 					} else{
 						sampleSetCounter.increment(keyIndexOnly, WITHOUT_BARCODES);
 					}

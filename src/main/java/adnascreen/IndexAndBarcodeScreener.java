@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -118,18 +119,17 @@ public class IndexAndBarcodeScreener {
 				
 				// Lookup by index pair whether barcodes are used
 				IndexAndBarcodeKey keyIndexOnly = MergedRead.findExperimentKey(r1, r2, i1, i2, 
-						i5Indices, i7Indices, null);
-				boolean useBarcodes = true;
+						i5Indices, i7Indices, null, 0);
+				int barcodeLength = -1;
 				if(barcodeCountStatistics != null){
-					// We assume that for a given index pair, barcodes are either always used or always not
-					// We use a simple majority to determine whether barcodes are used for this index pair
-					useBarcodes = barcodeCountStatistics.get(keyIndexOnly, BarcodeCount.WITHOUT_BARCODES)
-							<= barcodeCountStatistics.get(keyIndexOnly, BarcodeCount.WITH_BARCODES);
+					// We assume that for a given index pair, barcodes are all the same length
+					// We the 4-tuple with maximum count to determine the barcode length for this index pair
+					barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes);
 				}
 				
 				// update key if barcodes are used, otherwise reuse the index pair
-				IndexAndBarcodeKey key = useBarcodes ? MergedRead.findExperimentKey(r1, r2, i1, i2, 
-						i5Indices, i7Indices, barcodes) : keyIndexOnly;
+				IndexAndBarcodeKey key = (barcodeLength > 0) ? MergedRead.findExperimentKey(r1, r2, i1, i2, 
+						i5Indices, i7Indices, barcodes, barcodeLength) : keyIndexOnly;
 				
 				IndexAndBarcodeKey keyFlattened = null;
 				sampleSetCounter.increment(); // statistics recording
@@ -180,5 +180,36 @@ public class IndexAndBarcodeScreener {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Find the barcode length with maximum count from a previous pass through the index pair data. 
+	 * @param barcodeCountStatistics
+	 * @param keyIndexOnly
+	 * @return 
+	 */
+	public static int barcodeLengthFromPriorPassCounts(SampleSetsCounter barcodeCountStatistics, 
+			IndexAndBarcodeKey keyIndexOnly, BarcodeMatcher barcodes){
+		if(barcodeCountStatistics == null)
+			throw new IllegalArgumentException("No counts");
+		else if (keyIndexOnly == null)
+			throw new IllegalArgumentException("No index pair");
+
+		SampleCounter countsForKeyIndexOnly = barcodeCountStatistics.get(keyIndexOnly);
+		int max = -1;
+		String maxLabel = null;
+		List<String> barcodePairStrings = countsForKeyIndexOnly.getLabelList();
+		for(String barcodePairString : barcodePairStrings){
+			if(countsForKeyIndexOnly.get(barcodePairString) > max){
+				max = countsForKeyIndexOnly.get(barcodePairString);
+				maxLabel = barcodePairString;
+			}
+		}
+		if(maxLabel != null){
+			int barcodeLength = barcodes.getBarcodeLength(maxLabel);
+			return barcodeLength;
+		}
+		else
+			return -1;
 	}
 }

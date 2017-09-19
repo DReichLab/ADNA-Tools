@@ -1,5 +1,6 @@
 package adnascreen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -57,10 +58,12 @@ public class MergedRead extends Read{
 	 * @param i5Indices i5 index must be found here to merge
 	 * @param i7Indices i7 index must be found here to merge
 	 * @param barcodes Inline barcodes r1 and r2. If null, no barcodes will be assumed
+	 * @param singleBarcodeLength if >= 0, a single length of barcodes to use. 
+	 * 		If < 0, barcodes will be matched starting from the longest length
 	 * @return key of 4-tuple of indices and barcodes, or null if all four of these are not found. 
 	 */
 	public static IndexAndBarcodeKey findExperimentKey(Read r1, Read r2, Read i1, Read i2, 
-			BarcodeMatcher i5Indices, BarcodeMatcher i7Indices, BarcodeMatcher barcodes){
+			BarcodeMatcher i5Indices, BarcodeMatcher i7Indices, BarcodeMatcher barcodes, int singleBarcodeLength){
 		// check for metadata consistency
 		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader())
 				|| !r1.getFASTQHeader().equalsExceptRead(i1.getFASTQHeader())
@@ -77,7 +80,13 @@ public class MergedRead extends Read{
 
 		if(i5IndexLabel != null && i7IndexLabel != null){
 			if(barcodes != null){
-				List<Integer> barcodeLengths = barcodes.getBarcodeLengths();
+				List<Integer> barcodeLengths;
+				if(singleBarcodeLength < 0)
+					barcodeLengths = barcodes.getBarcodeLengths();
+				else{
+					barcodeLengths = new ArrayList<Integer>();
+					barcodeLengths.add(singleBarcodeLength);
+				}
 				for(int barcodeLength : barcodeLengths){
 					DNASequence p5BarcodeRaw = r1.getDNASequence().subsequence(0, barcodeLength);
 					DNASequence p7BarcodeRaw = r2.getDNASequence().subsequence(0, barcodeLength);

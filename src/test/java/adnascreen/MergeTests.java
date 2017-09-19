@@ -122,7 +122,7 @@ public class MergeTests {
 	public void MergeSequencesPartialOverlap(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
+			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 
 			BarcodeMatcher indexMatcher = new BarcodeMatcher();
@@ -154,8 +154,14 @@ public class MergeTests {
 					"GTCTCAAGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCAAGTTAATTCTCCTGCCTC",
 					"BBBBBBBEEEEEEAEEEEEEEEEEEEEEEEEEEAAEEEEEEEEEEEAEEEEEEEE/EEE");
 			
+			// Test search with unrestricted barcode length
 			IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, indexRead5, indexRead7, 
-					indexMatcher, indexMatcher, barcodeMatcher);
+					indexMatcher, indexMatcher, barcodeMatcher, -1);
+			// Test that restricting to correct barcode length works too
+			IndexAndBarcodeKey key7 = MergedRead.findExperimentKey(r1, r2, indexRead5, indexRead7, 
+					indexMatcher, indexMatcher, barcodeMatcher, 7);
+			assertEquals(key, key7);
+			
 			int r1BarcodeLength = barcodeMatcher.getBarcodeLength(key.getP5Label());
 			int r2BarcodeLength = barcodeMatcher.getBarcodeLength(key.getP7Label());
 			assertEquals(r1BarcodeLength, 7);
@@ -176,7 +182,7 @@ public class MergeTests {
 	public void overlappingMerge(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
+			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 
 			BarcodeMatcher indexMatcher = new BarcodeMatcher();
@@ -209,7 +215,7 @@ public class MergeTests {
 					"BBBBBBBEEEEEEEEEEEAAEEEEEEEEEEEAEEEEEEEE/EEEEEEEAEEEAAEEEAEEE");
 			
 			IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, indexRead7, indexRead5, 
-					indexMatcher, indexMatcher, barcodeMatcher);
+					indexMatcher, indexMatcher, barcodeMatcher, -1);
 			int r1BarcodeLength = barcodeMatcher.getBarcodeLength(key.getP5Label());
 			int r2BarcodeLength = barcodeMatcher.getBarcodeLength(key.getP7Label());
 			assertEquals(r1BarcodeLength, 7);
@@ -239,5 +245,31 @@ public class MergeTests {
 		List<Integer> alignments = Read.findBestAlignment(r1, r2, maxPenalty, minOverlapLength, minResultLength, maxPositions,
 				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 		assertTrue(alignments.size() > 1);
+	}
+	
+	// TODO
+	@Test
+	public void noBarcodeMerge(){
+		try{
+			ClassLoader classLoader = getClass().getClassLoader();
+			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
+			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
+
+			BarcodeMatcher indexMatcher = new BarcodeMatcher();
+			DNASequence indexReference = new DNASequence("AAAAAAA");
+			indexMatcher.addReferenceSet(indexReference.toString(), "1");
+			Read indexRead5 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 1:N:0:0", "AAAAAAA", "EEEEEEE");
+			Read indexRead7 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 2:N:0:0", "AAAAAAA", "EEEEEEE");
+			/* splitting this single read into two
+		@NS500217:348:HTW2FBGXY:1:11101:13418:1065 1:N:0:0
+		CAGCTACTCAGGAGGCT GAGGCAGGAGAATTAACTT GAGATCGGAAGAGCACACGTCTGAACTCCAGTC
+		A only           | overlap A and B   | B only
+		+
+		EEEAEEEAAEEEAEEEE EEE/EEEEEEEEAEEEEEE EEEEEAAEEEEEEEEEEEEEEEEEEEAEEEEEE
+			 */
+		}
+		catch(Exception e){
+			fail();
+		}
 	}
 }

@@ -195,25 +195,39 @@ public class BarcodeMatcherTests {
 			n /= BASES.length;
 			b.append(c);
 		}
-		String dnaString = b.toString();
+		String dnaString = b.reverse().toString();
 		return new DNASequence(dnaString);
 	}
 	
-	//@Test
+	@Test
 	public void barcodeDensity(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("7bpBarcodes_Reich20170725").getPath();
+			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
+			
+			SampleCounter whichBarcodesMatch = new SampleCounter();
 			
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
-			int notFoundCount = 0;
-			for(int n = 0; n < 16834; n++){
-				DNASequence query = dnaStringFromInt(n, 7);
-				String result = barcodeMatcher.find(query);
-				if(result == null)
-					notFoundCount++;
+			for(int n = 0; n < 16384; n++){
+				DNASequence query_7bp = dnaStringFromInt(n, 7);
+				DNASequence query_6bp = query_7bp.subsequence(0, 6);
+				assertEquals(6, query_6bp.length());
+				DNASequence query_5bp = query_7bp.subsequence(0, 5);
+				assertEquals(5, query_5bp.length());
+				
+				String result_7bp = barcodeMatcher.find(query_7bp);
+				String result_6bp = barcodeMatcher.find(query_6bp);
+				String result_5bp = barcodeMatcher.find(query_5bp);
+				
+				String result = (result_5bp == null ? "0" : "1")
+						+ 		(result_6bp == null ? "0" : "1")
+						+ 		(result_7bp == null ? "0" : "1");
+				whichBarcodesMatch.increment(result);
+				if(result.equals("101")){
+					System.out.println(n + "\t" + query_7bp + "\t" + result_5bp + "\t" + result_6bp + "\t" + result_7bp);
+				}
 			}
-			System.out.println(notFoundCount);
+			System.out.println(whichBarcodesMatch.toString());
 		}
 		catch(IOException e){
 			fail(e.toString());

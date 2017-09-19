@@ -4,6 +4,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import java.util.List;
+
 public class SampleCounterTests {
 	@Test
 	public void basic(){
@@ -14,6 +16,10 @@ public class SampleCounterTests {
 		sampleCounter.increment(test);
 		assertEquals(1, sampleCounter.get(test));
 		assertEquals(0, sampleCounter.get(dne));
+		
+		List<String> labels = sampleCounter.getLabelList();
+		assertEquals(1, labels.size());
+		assertEquals(test, labels.get(0));
 	}
 	
 	@Test
@@ -68,6 +74,13 @@ public class SampleCounterTests {
 		// also test constructor from string
 		SampleCounter fromString = new SampleCounter(s.toString());
 		assertEquals(s, fromString);
+		
+		List<String> labels = s.getLabelList();
+		assertEquals(3, labels.size());
+		// order should be the same as the added order
+		assertEquals("raw", labels.get(0));
+		assertEquals("merged", labels.get(1));
+		assertEquals("aligned", labels.get(2));
 	}
 	
 	private final String RAW = "raw";
