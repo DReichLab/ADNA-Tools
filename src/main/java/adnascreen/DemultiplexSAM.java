@@ -40,12 +40,14 @@ public class DemultiplexSAM {
 		options.addOption("n", "numSamples", true, "Number of top samples to output");
 		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
 		options.addOption("b", "BAM", false, "Use bam files for output");
+		options.addOption("e", "explicit", false, "Explicit indices to demultiplex");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
 		int minimumReads = Integer.valueOf(commandLine.getOptionValue('r', "1"));
 		boolean useBAM = commandLine.hasOption('b');
 		String fileExtension = useBAM ? ".bam" : ".sam";
+		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
 		
 		String duplicatesSAMTag = "XD";
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
@@ -56,8 +58,8 @@ public class DemultiplexSAM {
 		// read statistics file with top keys
 		// open a SAM/BAM file for each key for demultiplexing its data
 		String statisticsFilename = commandLine.getOptionValue('s');
-		File f = new File(statisticsFilename);
-		try(BufferedReader reader = new BufferedReader(new FileReader(f))){
+		File statisticsFile = new File(statisticsFilename);
+		try(BufferedReader reader = new BufferedReader(new FileReader(statisticsFile))){
 			Integer.valueOf(reader.readLine());
 			for(int n = 0; n < numTopSamples; n++){
 				String entryLine = reader.readLine();
@@ -81,9 +83,23 @@ public class DemultiplexSAM {
 				}
 			}
 		}
-		SampleSetsCounter statistics = new SampleSetsCounter(f);
-		// iterate through input files
+		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
 		
+		// allow explicit additions to list of samples to demultiplex
+		// these will always be demultiplexed, indepdendent of the top number of samples or number of raw reads
+		if(explicitIndexFile != null){
+			try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
+				String entryLine;
+				while((entryLine = reader.readLine()) != null){
+					String [] fields = entryLine.split("\t");
+					String keyString = fields[0];
+					IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+					outputFiles.put(key, null); // mark this key for output later
+				}
+			}
+		}
+		
+		// iterate through input files
 		List<String> samFilenamesToProcess = commandLine.getArgList();
 		for(String filename : samFilenamesToProcess){
 			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));

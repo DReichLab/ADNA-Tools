@@ -199,7 +199,7 @@ public class BarcodeMatcherTests {
 		return new DNASequence(dnaString);
 	}
 	
-	@Test
+	//@Test
 	public void barcodeDensity(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
