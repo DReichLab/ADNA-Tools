@@ -10,7 +10,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -80,12 +82,13 @@ public class IndexAndBarcodeScreener {
 		
 		// A previous pass through the data is needed to count the number of paired reads
 		// that demultiplex with barcodes
-		final String barcodeCountStatisticsFilename = commandLine.getOptionValue("barcodeCount", null);
+		final String barcodeCountStatisticsFilename = commandLine.getOptionValue("barcode-count", null);
 		SampleSetsCounter barcodeCountStatistics = null;
 		if(barcodeCountStatisticsFilename != null){
 			File barcodeCountStatisticsFile = new File(barcodeCountStatisticsFilename);
 			barcodeCountStatistics = new SampleSetsCounter(barcodeCountStatisticsFile);
 		}
+		Map<IndexAndBarcodeKey, Integer> barcodeLengthByIndexPair = new HashMap<IndexAndBarcodeKey, Integer>();
 
 		String[] remainingArgs = commandLine.getArgs();
 		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];
@@ -121,10 +124,15 @@ public class IndexAndBarcodeScreener {
 				IndexAndBarcodeKey keyIndexOnly = MergedRead.findExperimentKey(r1, r2, i1, i2, 
 						i5Indices, i7Indices, null, 0);
 				int barcodeLength = -1;
-				if(barcodeCountStatistics != null){
+				if(barcodeCountStatistics != null && keyIndexOnly != null){
 					// We assume that for a given index pair, barcodes are all the same length
 					// We the 4-tuple with maximum count to determine the barcode length for this index pair
-					barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes);
+					if(barcodeLengthByIndexPair.containsKey(keyIndexOnly)){
+						barcodeLength = barcodeLengthByIndexPair.get(keyIndexOnly);
+					} else{
+						barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes);
+						barcodeLengthByIndexPair.put(keyIndexOnly, barcodeLength);
+					}
 				}
 				
 				// update key if barcodes are used, otherwise reuse the index pair
@@ -206,8 +214,12 @@ public class IndexAndBarcodeScreener {
 			}
 		}
 		if(maxLabel != null){
-			int barcodeLength = barcodes.getBarcodeLength(maxLabel);
-			return barcodeLength;
+			String[] maxBarcodeLabels = maxLabel.split(String.valueOf(IndexAndBarcodeKey.FIELD_SEPARATOR));
+			int barcode1Length = barcodes.getBarcodeLength(maxBarcodeLabels[0]);
+			int barcode2Length = barcodes.getBarcodeLength(maxBarcodeLabels[1]);
+			if(barcode1Length != barcode2Length)
+				throw new IllegalStateException("barcode lengths do not match");
+			return barcode1Length;
 		}
 		else
 			return -1;
