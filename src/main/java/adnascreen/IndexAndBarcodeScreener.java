@@ -216,9 +216,11 @@ public class IndexAndBarcodeScreener {
 		if(maxLabel != null){
 			String[] maxBarcodeLabels = maxLabel.split(String.valueOf(IndexAndBarcodeKey.FIELD_SEPARATOR));
 			int barcode1Length = barcodes.getBarcodeLength(maxBarcodeLabels[0]);
-			int barcode2Length = barcodes.getBarcodeLength(maxBarcodeLabels[1]);
-			if(barcode1Length != barcode2Length)
-				throw new IllegalStateException("barcode lengths do not match");
+			if(maxBarcodeLabels.length > 1){
+				int barcode2Length = barcodes.getBarcodeLength(maxBarcodeLabels[1]);
+				if(barcode1Length != barcode2Length)
+					throw new IllegalStateException("barcode lengths do not match");
+			}
 			return barcode1Length;
 		}
 		else
