@@ -247,26 +247,44 @@ public class MergeTests {
 		assertTrue(alignments.size() > 1);
 	}
 	
-	// TODO
 	@Test
 	public void noBarcodeMerge(){
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
-			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
-			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
-
-			BarcodeMatcher indexMatcher = new BarcodeMatcher();
-			DNASequence indexReference = new DNASequence("AAAAAAA");
-			indexMatcher.addReferenceSet(indexReference.toString(), "1");
-			Read indexRead5 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 1:N:0:0", "AAAAAAA", "EEEEEEE");
-			Read indexRead7 = new Read("@NS500217:348:HTW2FBGXY:1:11101:13418:1065 2:N:0:0", "AAAAAAA", "EEEEEEE");
-			/* splitting this single read into two
-		@NS500217:348:HTW2FBGXY:1:11101:13418:1065 1:N:0:0
-		CAGCTACTCAGGAGGCT GAGGCAGGAGAATTAACTT GAGATCGGAAGAGCACACGTCTGAACTCCAGTC
-		A only           | overlap A and B   | B only
-		+
-		EEEAEEEAAEEEAEEEE EEE/EEEEEEEEAEEEEEE EEEEEAAEEEEEEEEEEEEEEEEEEEAEEEEEE
-			 */
+			String barcodeFilename = classLoader.getResource("Barcodes_5-7bp").getPath();
+			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(barcodeFilename, 1);
+			
+			String i5Filename = classLoader.getResource("P5indices_Reich20170725").getPath();
+			BarcodeMatcher i5Matcher = new BarcodeMatcher(i5Filename, 1);
+			String i7Filename = classLoader.getResource("P7indices_Reich20170725").getPath();
+			BarcodeMatcher i7Matcher = new BarcodeMatcher(i7Filename, 1);
+			Read i1Read = new Read("@NS500217:33:H0NW5AGXX:2:11108:10995:8106 1:N:0:0", "GCTCCGT", "AAAAAFF");
+			Read i2Read = new Read("@NS500217:33:H0NW5AGXX:2:11108:10995:8106 2:N:0:0", "ACGGAGC", "<AAAAFF");
+			
+			Read r1 = new Read("@NS500217:33:H0NW5AGXX:2:11108:10995:8106 1:N:0:0",
+					"ATAGAAGCAGAGAATAGTATGATGGTTACTAGAGATCGGAAGAGCACACGTCTGAACTCCAGTCACGCTCCGTATC",
+					"AA<AAFFFFFFFFFFAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFAFAFFFFFFAFFFFFFFFF7FFFFFFFFAFF");
+			Read r2 = new Read("@NS500217:33:H0NW5AGXX:2:11108:10995:8106 2:N:0:0",
+					"CTAGTAACCATCATACTATTCTCTGCTTCTATAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTACGGAGCGTGT",
+					"AAAAAF<FFFFFFFFFFFFFFFFFFFFFFFAF<FFFFFFFFFFFFFFFFFF.)FFF.AFFFFFFFF<FF.FAA.FA");
+/*
+                                            ATAGAAGCAGAGAATAGTATGATGGTTACTAGAGATCGGAAGAGCACACGTCTGAACTCCAGTCACGCTCCGTATC
+ACACGCTCCGTACACTCTTTCCCTACACGACGCTCTTCCGATCTATAGAAGCAGAGAATAGTATGATGGTTACTAG
+                                            AA<AAFFFFFFFFFFAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFAFAFFFFFFAFFFFFFFFF7FFFFFFFFAFF
+AF.AAF.FF<FFFFFFFFA.FFF).FFFFFFFFFFFFFFFFFF<FAFFFFFFFFFFFFFFFFFFFFFFF<FAAAAA
+                                            FAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+*/
+			// Test search 0 barcode length
+			IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1Read, i2Read, 
+					i5Matcher, i7Matcher, barcodeMatcher, 0);
+			assertEquals(key.getI5Label(), "CR-P5-i01");
+			assertEquals(key.getI7Label(), "CR-P7-i01");
+			
+			MergedRead merged = MergedRead.mergePairedSequences(r1, r2, key, 
+					0, 0, maxPenalty, minOverlapLength, minResultLength,
+					mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
+			assertEquals("ATAGAAGCAGAGAATAGTATGATGGTTACTAG", merged.getDNASequence().toString());
+			assertEquals("FAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", merged.getQualitySequence().toString());
 		}
 		catch(Exception e){
 			fail();
