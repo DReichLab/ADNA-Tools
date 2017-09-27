@@ -86,7 +86,7 @@ public class DemultiplexSAM {
 		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
 		
 		// allow explicit additions to list of samples to demultiplex
-		// these will always be demultiplexed, indepdendent of the top number of samples or number of raw reads
+		// these will always be demultiplexed, independent of the top number of samples or number of raw reads
 		if(explicitIndexFile != null){
 			try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
 				String entryLine;

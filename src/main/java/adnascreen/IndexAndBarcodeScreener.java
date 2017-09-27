@@ -126,7 +126,7 @@ public class IndexAndBarcodeScreener {
 				int barcodeLength = -1;
 				if(barcodeCountStatistics != null && keyIndexOnly != null){
 					// We assume that for a given index pair, barcodes are all the same length
-					// We the 4-tuple with maximum count to determine the barcode length for this index pair
+					// We use the 4-tuple with maximum count to determine the barcode length for this index pair
 					if(barcodeLengthByIndexPair.containsKey(keyIndexOnly)){
 						barcodeLength = barcodeLengthByIndexPair.get(keyIndexOnly);
 					} else{
