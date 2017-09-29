@@ -187,6 +187,46 @@ public class BarcodeMatcherTests {
 		assertEquals(expectedLength, nullLength);
 	}
 	
+	@Test
+	public void lengthBarcodePairLabel(){
+		try{
+			ClassLoader classLoader = getClass().getClassLoader();
+			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
+
+			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
+			
+			int length;
+			length = barcodeMatcher.getBarcodePairLength("Q1" + IndexAndBarcodeKey.FIELD_SEPARATOR + "Q2");
+			assertEquals(7, length);
+			
+			length = barcodeMatcher.getBarcodePairLength("6-1" + IndexAndBarcodeKey.FIELD_SEPARATOR + "6-1");
+			assertEquals(6, length);
+			
+			length = barcodeMatcher.getBarcodePairLength("5-4" + IndexAndBarcodeKey.FIELD_SEPARATOR + "5-6");
+			assertEquals(5, length);
+		}
+		catch(Exception e){
+			fail();
+		}
+	}
+	
+	@Test
+	public void illegalBarcodePairLabel(){
+		thrown.expect(IllegalArgumentException.class);
+		try{
+			ClassLoader classLoader = getClass().getClassLoader();
+			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
+
+			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
+			
+			barcodeMatcher.getBarcodePairLength("Q1" + IndexAndBarcodeKey.FIELD_SEPARATOR + "6-1");
+			fail();
+		}
+		catch(IOException e){
+			fail();
+		}
+	}
+	
 	private DNASequence dnaStringFromInt(int n, int length){
 		final char[] BASES = {'A', 'C', 'G', 'T'}; 
 		StringBuilder b = new StringBuilder();

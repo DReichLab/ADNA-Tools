@@ -188,12 +188,29 @@ public class BarcodeMatcher {
 	/**
 	 * 
 	 * @param label
-	 * @return length of barcode(s) corresponding to this label
+	 * @return length of barcode(s) corresponding to this label, 0 barcode label is not found
 	 */
 	public int getBarcodeLength(String label){
 		String flattenedLabel = IndexAndBarcodeKey.flatten(label);
 		Integer length = labelToBarcodeLength.get(flattenedLabel);
 		return (length != null) ? length : 0;
+	}
+	
+	/**
+	 * This is a convenience function to parse the barcode portion of 
+	 * an IndexAndBarcodeKey to determine barcode length
+	 * @param pairLabel
+	 * @return barcode length, or 0 if barcode label is not found
+	 */
+	public int getBarcodePairLength(String pairLabel){
+		String[] maxBarcodeLabels = pairLabel.split(String.valueOf(IndexAndBarcodeKey.FIELD_SEPARATOR));
+		int barcode1Length = getBarcodeLength(maxBarcodeLabels[0]);
+		if(maxBarcodeLabels.length > 1){
+			int barcode2Length = getBarcodeLength(maxBarcodeLabels[1]);
+			if(barcode1Length != barcode2Length)
+				throw new IllegalArgumentException("barcode lengths do not match");
+		}
+		return barcode1Length;
 	}
 	
 	private void cacheBarcodeLengths(){

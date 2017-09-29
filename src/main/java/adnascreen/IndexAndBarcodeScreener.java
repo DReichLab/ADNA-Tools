@@ -13,6 +13,8 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -56,6 +58,7 @@ public class IndexAndBarcodeScreener {
 		options.addOption("h", "hamming-distance", true, "Max hamming distance for index or barcode match");
 		options.addOption("r", "read-group-file", true, "Output file for read group");
 		options.addOption("c", "barcode-count", true, "File containing prior pass's counts of keys with(out) barcodes by index pair to determine whether to demultiplex with barcodes");
+		options.addOption("t", "barcode-threshold", true, "Threshold for count to use barcode length over no barcodes");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -70,6 +73,7 @@ public class IndexAndBarcodeScreener {
 		final int minMergedLength = Integer.valueOf(commandLine.getOptionValue('l', "30"));
 		final int numOutputFiles = Integer.valueOf(commandLine.getOptionValue('n', "25"));
 		final int maxHammingDistance = Integer.valueOf(commandLine.getOptionValue('h', "1"));
+		final float barcodeToNoBarcodeThreshold = Float.valueOf(commandLine.getOptionValue("barcode-threshold", "0.05"));
 		String readGroupFilename = commandLine.getOptionValue("read-group-file", "read_group");
 		
 		try{
@@ -88,7 +92,7 @@ public class IndexAndBarcodeScreener {
 			File barcodeCountStatisticsFile = new File(barcodeCountStatisticsFilename);
 			barcodeCountStatistics = new SampleSetsCounter(barcodeCountStatisticsFile);
 		}
-		Map<IndexAndBarcodeKey, Integer> barcodeLengthByIndexPair = new HashMap<IndexAndBarcodeKey, Integer>();
+		Map<IndexAndBarcodeKey, Integer> barcodeLengthByIndexPairCache = new HashMap<IndexAndBarcodeKey, Integer>();
 
 		String[] remainingArgs = commandLine.getArgs();
 		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];
@@ -127,11 +131,11 @@ public class IndexAndBarcodeScreener {
 				if(barcodeCountStatistics != null && keyIndexOnly != null){
 					// We assume that for a given index pair, barcodes are all the same length
 					// We use the 4-tuple with maximum count to determine the barcode length for this index pair
-					if(barcodeLengthByIndexPair.containsKey(keyIndexOnly)){
-						barcodeLength = barcodeLengthByIndexPair.get(keyIndexOnly);
+					if(barcodeLengthByIndexPairCache.containsKey(keyIndexOnly)){
+						barcodeLength = barcodeLengthByIndexPairCache.get(keyIndexOnly);
 					} else{
-						barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes);
-						barcodeLengthByIndexPair.put(keyIndexOnly, barcodeLength);
+						barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes, barcodeToNoBarcodeThreshold);
+						barcodeLengthByIndexPairCache.put(keyIndexOnly, barcodeLength);
 					}
 				}
 				
@@ -191,39 +195,51 @@ public class IndexAndBarcodeScreener {
 	}
 	
 	/**
-	 * Find the barcode length with maximum count from a previous pass through the index pair data. 
+	 * Find the barcode length using counts from a previous pass through the index pair data. 
+	 * The top barcode length is chosen, unless that is 0 (non-barcoded). If 0, the top non-zero barcode is checked, 
+	 * and if that barcode is a substantial fraction of the non-barcoded count, the non-zero barcode length is returned. 
 	 * @param barcodeCountStatistics
 	 * @param keyIndexOnly
+	 * @param barcodes
+	 * @param threshold Use non-zero barcode count if (non-zero barcode count > (non-barcoded count * threshold))
 	 * @return 
 	 */
 	public static int barcodeLengthFromPriorPassCounts(SampleSetsCounter barcodeCountStatistics, 
-			IndexAndBarcodeKey keyIndexOnly, BarcodeMatcher barcodes){
+			IndexAndBarcodeKey keyIndexOnly, BarcodeMatcher barcodes, float threshold){
 		if(barcodeCountStatistics == null)
 			throw new IllegalArgumentException("No counts");
 		else if (keyIndexOnly == null)
 			throw new IllegalArgumentException("No index pair");
 
 		SampleCounter countsForKeyIndexOnly = barcodeCountStatistics.get(keyIndexOnly);
-		int max = -1;
-		String maxLabel = null;
 		List<String> barcodePairStrings = countsForKeyIndexOnly.getLabelList();
+		// sort barcode pairs by count, tail is highest count
+		SortedMap<Integer, String> barcodePairsByCount = new TreeMap<Integer, String>();
 		for(String barcodePairString : barcodePairStrings){
-			if(countsForKeyIndexOnly.get(barcodePairString) > max){
-				max = countsForKeyIndexOnly.get(barcodePairString);
-				maxLabel = barcodePairString;
+			barcodePairsByCount.put(countsForKeyIndexOnly.get(barcodePairString), barcodePairString);
+		}
+		
+		int barcodeLength = -1;
+		Integer max;
+		max = barcodePairsByCount.lastKey();
+		String maxPairLabel = barcodePairsByCount.remove(max);
+		barcodeLength = barcodes.getBarcodePairLength(maxPairLabel);
+		
+		if(barcodeLength == 0){
+			// if a minority of barcodes pass the barcode check, we can falsely assume there are no barcodes
+			// check whether a substantial fraction of barcodes are for a single barcode pair
+			Integer second = barcodePairsByCount.lastKey();
+			if(second > threshold * max){
+				String secondPairLabel = barcodePairsByCount.remove(second);
+				int secondLength = barcodes.getBarcodePairLength(secondPairLabel);
+				if(secondLength > 0){
+					barcodeLength = secondLength;
+				} else {
+					throw new IllegalStateException("Two index-barcode keys without barcodes. There should be at most one.");
+				}
 			}
 		}
-		if(maxLabel != null){
-			String[] maxBarcodeLabels = maxLabel.split(String.valueOf(IndexAndBarcodeKey.FIELD_SEPARATOR));
-			int barcode1Length = barcodes.getBarcodeLength(maxBarcodeLabels[0]);
-			if(maxBarcodeLabels.length > 1){
-				int barcode2Length = barcodes.getBarcodeLength(maxBarcodeLabels[1]);
-				if(barcode1Length != barcode2Length)
-					throw new IllegalStateException("barcode lengths do not match");
-			}
-			return barcode1Length;
-		}
-		else
-			return -1;
+		
+		return barcodeLength;
 	}
 }
