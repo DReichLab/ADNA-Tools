@@ -225,7 +225,7 @@ public class IndexAndBarcodeScreener {
 		String maxPairLabel = barcodePairsByCount.remove(max);
 		barcodeLength = barcodes.getBarcodePairLength(maxPairLabel);
 		
-		if(barcodeLength == 0){
+		if(barcodeLength == 0 && barcodePairsByCount.size() > 0){
 			// if a minority of barcodes pass the barcode check, we can falsely assume there are no barcodes
 			// check whether a substantial fraction of barcodes are for a single barcode pair
 			Integer second = barcodePairsByCount.lastKey();

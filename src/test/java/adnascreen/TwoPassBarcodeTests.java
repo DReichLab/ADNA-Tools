@@ -58,4 +58,24 @@ public class TwoPassBarcodeTests {
 			fail();
 		}
 	}
+	
+	@Test
+	public void noBarcodes(){
+		SampleSetsCounter barcodeCounts = new SampleSetsCounter();
+		float threshold = 0.05f;
+		
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("Barcodes_5-7bp").getPath();		
+		try {
+			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
+			IndexAndBarcodeKey indexOnlyKey = new IndexAndBarcodeKey("1", "2", null, null);
+			int length;
+			
+			barcodeCounts.add(indexOnlyKey, BarcodeCount.WITHOUT_BARCODES, 10000);
+			length = IndexAndBarcodeScreener.barcodeLengthFromPriorPassCounts(barcodeCounts, indexOnlyKey, barcodeMatcher, threshold);
+			assertEquals(0, length);
+		} catch (IOException e) {
+			fail();
+		}
+	}
 }
