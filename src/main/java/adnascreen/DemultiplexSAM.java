@@ -38,16 +38,21 @@ public class DemultiplexSAM {
 		Options options = new Options();
 		options.addRequiredOption("s", "statisticsFilename", true, "Statistics file sorted in order of output");
 		options.addOption("n", "numSamples", true, "Number of top samples to output");
+		options.addOption("m", "maximumSamples", true, "Maximum number of samples to demultiplex [restricted by OS]");
 		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
 		options.addOption("b", "BAM", false, "Use bam files for output");
 		options.addOption("e", "explicit", false, "Explicit indices to demultiplex");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
+		int maximumSamples = Integer.valueOf(commandLine.getOptionValue('m', "1000"));
 		int minimumReads = Integer.valueOf(commandLine.getOptionValue('r', "1"));
 		boolean useBAM = commandLine.hasOption('b');
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
+		
+		if(numTopSamples > maximumSamples)
+			System.err.println("number of top samples is restricted to maximum samples");
 		
 		String duplicatesSAMTag = "XD";
 		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
@@ -55,13 +60,27 @@ public class DemultiplexSAM {
 		SAMSequenceDictionary alignmentReference = null;
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
 		
+		// allow explicit additions to list of samples to demultiplex
+		// these will always be demultiplexed, independent of the top number of samples or number of raw reads
+		if(explicitIndexFile != null){
+			try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
+				String entryLine;
+				while((entryLine = reader.readLine()) != null){
+					String [] fields = entryLine.split("\t");
+					String keyString = fields[0];
+					IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+					outputFiles.put(key, null); // mark this key for output later
+				}
+			}
+		}
+		
 		// read statistics file with top keys
 		// open a SAM/BAM file for each key for demultiplexing its data
 		String statisticsFilename = commandLine.getOptionValue('s');
 		File statisticsFile = new File(statisticsFilename);
 		try(BufferedReader reader = new BufferedReader(new FileReader(statisticsFile))){
 			Integer.valueOf(reader.readLine());
-			for(int n = 0; n < numTopSamples; n++){
+			for(int n = 0; n < numTopSamples && outputFiles.size() < maximumSamples; n++){
 				String entryLine = reader.readLine();
 				String [] fields = entryLine.split("\t");
 				String keyString = fields[0];
@@ -83,21 +102,13 @@ public class DemultiplexSAM {
 				}
 			}
 		}
-		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
-		
-		// allow explicit additions to list of samples to demultiplex
-		// these will always be demultiplexed, independent of the top number of samples or number of raw reads
-		if(explicitIndexFile != null){
-			try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
-				String entryLine;
-				while((entryLine = reader.readLine()) != null){
-					String [] fields = entryLine.split("\t");
-					String keyString = fields[0];
-					IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-					outputFiles.put(key, null); // mark this key for output later
-				}
-			}
+		if(outputFiles.size() == maximumSamples){
+			System.err.println("Outputting maximum samples");
+		} else if (outputFiles.size() > maximumSamples){
+			throw new IllegalStateException("Exceeded maximum number of samples to demultiplex");
 		}
+		
+		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
 		
 		// iterate through input files
 		List<String> samFilenamesToProcess = commandLine.getArgList();
