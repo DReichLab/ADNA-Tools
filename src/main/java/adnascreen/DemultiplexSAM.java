@@ -41,7 +41,7 @@ public class DemultiplexSAM {
 		options.addOption("m", "maximumSamples", true, "Maximum number of samples to demultiplex [restricted by OS]");
 		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
 		options.addOption("b", "BAM", false, "Use bam files for output");
-		options.addOption("e", "explicit", false, "Explicit indices to demultiplex");
+		options.addOption("e", "explicit", true, "Explicit indices to demultiplex");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
