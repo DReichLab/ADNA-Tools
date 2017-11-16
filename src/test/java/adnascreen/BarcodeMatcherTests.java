@@ -227,6 +227,19 @@ public class BarcodeMatcherTests {
 		}
 	}
 	
+	@Test
+	public void caseChange() {
+		String barcodeSet = "atcgatt:CAGTCAA";
+		String label = "A1";
+		String expectedResult = "A1" + BarcodeMatcher.INDEX_DELIMITER + "1";
+		DNASequence query = new DNASequence("ATCGATT");
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		String result = barcodeMatcher.find(query);
+		assertEquals(expectedResult, result);
+	}
+	
 	private DNASequence dnaStringFromInt(int n, int length){
 		final char[] BASES = {'A', 'C', 'G', 'T'}; 
 		StringBuilder b = new StringBuilder();

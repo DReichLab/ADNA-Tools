@@ -75,7 +75,7 @@ public class BarcodeMatcher {
 	 * then cache should be called manually. 
 	 */
 	private void addReferenceSet(String barcodeSetString, String label, boolean clearCaches){
-		String [] barcodeStrings = barcodeSetString.split(":");
+		String [] barcodeStrings = barcodeSetString.toUpperCase().split(":");
 		// check that barcodes are of the same length
 		if(barcodeStrings.length > 0){
 			int barcodeLength = -1;
