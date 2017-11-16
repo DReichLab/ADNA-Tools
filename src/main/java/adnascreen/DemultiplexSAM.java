@@ -37,6 +37,7 @@ public class DemultiplexSAM {
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
 		options.addRequiredOption("s", "statisticsFilename", true, "Statistics file sorted in order of output");
+		options.addOption("f", "barcodeFile", true, "Barcode file to mark for duplicates");
 		options.addOption("n", "numSamples", true, "Number of top samples to output");
 		options.addOption("m", "maximumSamples", true, "Maximum number of samples to demultiplex [restricted by OS]");
 		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
@@ -50,6 +51,7 @@ public class DemultiplexSAM {
 		boolean useBAM = commandLine.hasOption('b');
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
+		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
 		
 		if(numTopSamples > maximumSamples)
 			System.err.println("number of top samples is restricted to maximum samples");
@@ -108,6 +110,11 @@ public class DemultiplexSAM {
 			throw new IllegalStateException("Exceeded maximum number of samples to demultiplex");
 		}
 		
+		// we write barcode sequences into reads to mark duplicates
+		BarcodeMatcher barcodes = new BarcodeMatcher();
+		if(barcodeFilename != null)
+			barcodes.loadFile(barcodeFilename);
+		
 		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
 		
 		// iterate through input files
@@ -134,15 +141,21 @@ public class DemultiplexSAM {
 						String readName = record.getReadName();
 						String [] readNameParts = readName.split(String.valueOf(MergedRead.KEY_SEPARATOR));
 						IndexAndBarcodeKey key = new IndexAndBarcodeKey(readNameParts[1]);
-						IndexAndBarcodeKey keyFlattened = key.flatten();
 						
-						// for deduplication, write unflattened key identifying barcodes within set and read length to tag
+						// for deduplication, write barcodes and read length to tag
 						int length = record.getReadLength();
-						record.setAttribute(duplicatesSAMTag, key.toString() + "_" + length);
+						DNASequence p5Barcode = barcodes.getBarcode(key.getP5Label());
+						DNASequence p7Barcode = barcodes.getBarcode(key.getP7Label());
+						String duplicate_marker = 
+								(p5Barcode != null ? p5Barcode.toString() : "") + IndexAndBarcodeKey.FIELD_SEPARATOR +
+								(p7Barcode != null ? p7Barcode.toString() : "") + IndexAndBarcodeKey.FIELD_SEPARATOR +
+								length;
+						record.setAttribute(duplicatesSAMTag, duplicate_marker);
 						// remove the key from the read name
 						String readNameNoKey = readNameParts[0];
 						record.setReadName(readNameNoKey);
 
+						IndexAndBarcodeKey keyFlattened = key.flatten();
 						// record statistics
 						// count of demultiplexed reads is for checking consistency
 						statistics.increment(keyFlattened, DEMULTIPLEXED);
