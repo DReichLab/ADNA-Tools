@@ -240,6 +240,72 @@ public class BarcodeMatcherTests {
 		assertEquals(expectedResult, result);
 	}
 	
+	@Test
+	public void labelToBarcodeNullQuery(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String query = null;
+		DNASequence expectedResult = null;
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		DNASequence result = barcodeMatcher.getBarcode(query);
+		assertEquals(expectedResult, result);
+	}
+	
+	@Test
+	public void labelToBarcodeMatch1(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String query = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "1";
+		DNASequence expectedResult = new DNASequence("ATCGATT");
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		DNASequence result = barcodeMatcher.getBarcode(query);
+		assertEquals(expectedResult, result);
+	}
+	
+	@Test
+	public void labelToBarcodeMatch2(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String query = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "2";
+		DNASequence expectedResult = new DNASequence("CAGTCAA");
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		DNASequence result = barcodeMatcher.getBarcode(query);
+		assertEquals(expectedResult, result);
+	}
+	
+	@Test
+	public void labelToBarcodeMatchNonset() {
+		String barcodeSet = "ATCGATT";
+		String label = "test";
+		DNASequence expectedResult = new DNASequence(barcodeSet);
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		DNASequence result = barcodeMatcher.getBarcode(label);
+		assertEquals(expectedResult, result);
+	}
+	
+	@Test
+	public void labelToBarcodeNoMatch() {
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String query = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "5";
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		
+		DNASequence result = barcodeMatcher.getBarcode(query);
+		assertNull(result);
+		
+		assertNull(barcodeMatcher.getBarcode("missing_label"));
+	}
+	
 	private DNASequence dnaStringFromInt(int n, int length){
 		final char[] BASES = {'A', 'C', 'G', 'T'}; 
 		StringBuilder b = new StringBuilder();

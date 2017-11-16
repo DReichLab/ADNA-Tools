@@ -30,12 +30,14 @@ public class BarcodeMatcher {
 	private List<Integer> barcodeLengths;
 	private int maxHammingDistance;
 	public final static char INDEX_DELIMITER = '.';
+	private Map<String, DNASequence> labelToBarcode;
 	
 	public BarcodeMatcher(){
 		referenceBarcodeToLabel = new HashMap<DNASequence, String>();
 		cache = new HashMap<DNASequence, Optional<String> >();
 		labelToBarcodeLength = new HashMap<String, Integer>();
 		barcodeLengthsSet = new TreeSet<Integer>();
+		labelToBarcode = new HashMap<String, DNASequence>();
 	}
 	
 	public BarcodeMatcher(String filename, int maxHammingDistance) throws IOException{
@@ -91,6 +93,7 @@ public class BarcodeMatcher {
 					barcodeLength = barcode.length();
 				if(barcode.length() != barcodeLength) // check all lengths against the first
 					throw new IllegalArgumentException("barcode length mismatch");
+				// Fill out barcode to label map
 				// if there is more than one barcode in this set, add index within set 
 				String augmentedLabel = (barcodeStrings.length > 1) ? label + INDEX_DELIMITER + index++ : label;
 				DNASequence barcodeSequence = new DNASequence(barcode);
@@ -98,6 +101,8 @@ public class BarcodeMatcher {
 					throw new IllegalArgumentException("barcodes must be unique");
 				else
 					referenceBarcodeToLabel.put(barcodeSequence, augmentedLabel);
+				// Fill out label to barcode map (reverse of previous)
+				labelToBarcode.put(augmentedLabel, barcodeSequence);
 			}
 			if(barcodeLength > 0){
 				labelToBarcodeLength.put(label, barcodeLength);
@@ -228,5 +233,9 @@ public class BarcodeMatcher {
 		if(barcodeLengths == null)
 			cacheBarcodeLengths();
 		return barcodeLengths;
+	}
+	
+	public DNASequence getBarcode(String label) {
+		return labelToBarcode.get(label);
 	}
 }
