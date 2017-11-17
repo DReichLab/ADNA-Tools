@@ -168,6 +168,12 @@ public class BarcodeMatcherTests {
 		assertEquals(1, lengths.size());
 		assertEquals(expectedLength, (int) lengths.get(0));
 		assertEquals(expectedLength, barcodeMatcher.getBarcodeLength(label));
+		
+		// check cache too
+		lengths = barcodeMatcher.getBarcodeLengths();
+		assertEquals(1, lengths.size());
+		assertEquals(expectedLength, (int) lengths.get(0));
+		assertEquals(expectedLength, barcodeMatcher.getBarcodeLength(label));
 	}
 	
 	@Test
@@ -304,6 +310,40 @@ public class BarcodeMatcherTests {
 		assertNull(result);
 		
 		assertNull(barcodeMatcher.getBarcode("missing_label"));
+	}
+	
+	@Test
+	public void badLabel() {
+		thrown.expect(IllegalArgumentException.class);
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1" + BarcodeMatcher.INDEX_DELIMITER;
+		
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+	}
+	
+	@Test
+	public void changingHammingDistance() {
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String expectedResult = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "1";
+		DNASequence query = new DNASequence("ATCGACC"); // off by 2
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.setMaxHammingDistance(2);
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		String result = barcodeMatcher.find(query);
+		assertEquals(expectedResult, result);
+		
+		barcodeMatcher.setMaxHammingDistance(1);
+		assertNull(barcodeMatcher.find(query));
+	}
+	
+	@Test
+	public void badHammingDistance() {
+		thrown.expect(IllegalArgumentException.class);
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.setMaxHammingDistance(-1);
 	}
 	
 	private DNASequence dnaStringFromInt(int n, int length){

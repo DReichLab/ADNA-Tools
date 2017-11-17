@@ -46,6 +46,14 @@ public class DNASequenceTests {
 	}
 	
 	@Test
+	public void hammingLengthMismatch() {
+		thrown.expect(IllegalArgumentException.class);
+		DNASequence s1 = new DNASequence("TGACGCA");
+		DNASequence s2 = new DNASequence("ATCGTG");
+		s1.hammingDistance(s2);
+	}
+	
+	@Test
 	public void hashCodeTest(){
 		DNASequence s1 = new DNASequence("TGACGCA");
 		DNASequence s2 = new DNASequence("TGACGCA");
