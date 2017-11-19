@@ -168,7 +168,7 @@ public class DemultiplexSAM {
 							// find file corresponding to this key
 							SAMFileWriter output = outputFiles.get(keyFlattened);
 							if(output == null){ // open new file, if none exists for this key
-								String outputFilename = keyFlattened.toString() + fileExtension;
+								String outputFilename = (keyFlattened.toString() + fileExtension).replace(':', '-'); // Cromwell chokes on files with ':'
 								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
 								if(useBAM){
 									output = outputFileFactory.makeBAMWriter(header, false, outputFile);
