@@ -9,8 +9,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -39,25 +41,22 @@ public class DemultiplexSAM {
 		options.addRequiredOption("s", "statisticsFilename", true, "Statistics file sorted in order of output");
 		options.addOption("f", "barcodeFile", true, "Barcode file to mark for duplicates");
 		options.addOption("n", "numSamples", true, "Number of top samples to output");
-		options.addOption("m", "maximumSamples", true, "Maximum number of samples to demultiplex [restricted by OS]");
+		options.addOption("m", "maximumConcurrentOpenFiles", true, "Maximum number of samples to demultiplex concurrently [restricted by OS]");
 		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
 		options.addOption("b", "BAM", false, "Use bam files for output");
 		options.addOption("e", "explicit", true, "Explicit indices to demultiplex");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
-		int maximumSamples = Integer.valueOf(commandLine.getOptionValue('m', "1000"));
+		int maximumConcurrentOpenFiles = Integer.valueOf(commandLine.getOptionValue('m', "1000"));
 		int minimumReads = Integer.valueOf(commandLine.getOptionValue('r', "1"));
 		boolean useBAM = commandLine.hasOption('b');
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
 		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
 		
-		if(numTopSamples > maximumSamples)
-			System.err.println("number of top samples is restricted to maximum samples");
-		
 		String duplicatesSAMTag = "XD";
-		Map<IndexAndBarcodeKey, SAMFileWriter> outputFiles = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
+		Queue<IndexAndBarcodeKey> outputFilesAll = new LinkedList<IndexAndBarcodeKey>();
 		
 		SAMSequenceDictionary alignmentReference = null;
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
@@ -71,7 +70,7 @@ public class DemultiplexSAM {
 					String [] fields = entryLine.split("\t");
 					String keyString = fields[0];
 					IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-					outputFiles.put(key, null); // mark this key for output later
+					outputFilesAll.add(key);
 				}
 			}
 		}
@@ -82,7 +81,7 @@ public class DemultiplexSAM {
 		File statisticsFile = new File(statisticsFilename);
 		try(BufferedReader reader = new BufferedReader(new FileReader(statisticsFile))){
 			Integer.valueOf(reader.readLine());
-			for(int n = 0; n < numTopSamples && outputFiles.size() < maximumSamples; n++){
+			for(int n = 0; n < numTopSamples; n++){
 				String entryLine = reader.readLine();
 				String [] fields = entryLine.split("\t");
 				String keyString = fields[0];
@@ -97,18 +96,12 @@ public class DemultiplexSAM {
 					int rawCount = Integer.valueOf(fields[rawIndex + 1]);
 					if(rawCount >= minimumReads){
 						IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-						outputFiles.put(key, null); // mark this key for output later
-						// we delay opening SAM/BAM file writer until the SAM/BAM header is available
-						// this is after we have opened the first SAM/BAM input file
+						outputFilesAll.add(key);
 					}
 				}
 			}
 		}
-		if(outputFiles.size() == maximumSamples){
-			System.err.println("Outputting maximum samples");
-		} else if (outputFiles.size() > maximumSamples){
-			throw new IllegalStateException("Exceeded maximum number of samples to demultiplex");
-		}
+		System.err.println("Outputting " + outputFilesAll.size() + " files");
 		
 		// we write barcode sequences into reads to mark duplicates
 		BarcodeMatcher barcodes = new BarcodeMatcher();
@@ -117,87 +110,100 @@ public class DemultiplexSAM {
 		
 		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
 		
-		// iterate through input files
-		List<String> samFilenamesToProcess = commandLine.getArgList();
-		for(String filename : samFilenamesToProcess){
-			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
-			try(
-					SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
-			){
-				SAMFileHeader header = reader.getFileHeader();
-				SAMSequenceDictionary currentAlignmentReference = header.getSequenceDictionary();
-				if(alignmentReference == null){
-					alignmentReference = currentAlignmentReference;
-				} else if(!alignmentReference.equals(currentAlignmentReference)){
-					throw new IllegalArgumentException("SAM references do not match");
-				}
+		while(outputFilesAll.size() > 0) {
+			// We may need multiple passes through the input files due to concurrent open file limit
+			Map<IndexAndBarcodeKey, SAMFileWriter> outputFilesConcurrent = new HashMap<IndexAndBarcodeKey, SAMFileWriter>(numTopSamples);
+			// prepare as many output files as concurrently possible
+			while(outputFilesConcurrent.size() < maximumConcurrentOpenFiles && outputFilesAll.size() > 0) {
+				IndexAndBarcodeKey key = outputFilesAll.remove();
+				outputFilesConcurrent.put(key, null); // mark this key for output in this pass
+				// we delay opening SAM/BAM file writer until the SAM/BAM header is available
+				// this is after we have opened the first SAM/BAM input file
+			}		
 
-				SAMRecordIterator i = reader.iterator();
-				while(i.hasNext()){
-					// iterate through alignments
-					try{
-						SAMRecord record = i.next();
-						// parse out key, which is a 4-tuple of indices and barcodes
-						String readName = record.getReadName();
-						String [] readNameParts = readName.split(String.valueOf(MergedRead.KEY_SEPARATOR));
-						IndexAndBarcodeKey key = new IndexAndBarcodeKey(readNameParts[1]);
-						
-						// for deduplication, write barcodes and read length to tag
-						int length = record.getReadLength();
-						DNASequence p5Barcode = barcodes.getBarcode(key.getP5Label());
-						DNASequence p7Barcode = barcodes.getBarcode(key.getP7Label());
-						String duplicate_marker = 
-								(p5Barcode != null ? p5Barcode.toString() : "") + IndexAndBarcodeKey.FIELD_SEPARATOR +
-								(p7Barcode != null ? p7Barcode.toString() : "") + IndexAndBarcodeKey.FIELD_SEPARATOR +
-								length;
-						record.setAttribute(duplicatesSAMTag, duplicate_marker);
-						// remove the key from the read name
-						String readNameNoKey = readNameParts[0];
-						record.setReadName(readNameNoKey);
+			// iterate through input files
+			List<String> samFilenamesToProcess = commandLine.getArgList();
+			for(String filename : samFilenamesToProcess){
+				SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
+				try(
+						SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+						){
+					SAMFileHeader header = reader.getFileHeader();
+					SAMSequenceDictionary currentAlignmentReference = header.getSequenceDictionary();
+					if(alignmentReference == null){
+						alignmentReference = currentAlignmentReference;
+					} else if(!alignmentReference.equals(currentAlignmentReference)){
+						throw new IllegalArgumentException("SAM references do not match");
+					}
 
-						IndexAndBarcodeKey keyFlattened = key.flatten();
-						// record statistics
-						// count of demultiplexed reads is for checking consistency
-						statistics.increment(keyFlattened, DEMULTIPLEXED);
-						if(!record.getReadUnmappedFlag()){ // read is mapped
-							statistics.increment(keyFlattened, ALIGNED);
-						}
-						
-						// write only to open files for top keys
-						if(outputFiles.containsKey(keyFlattened)){
-							// find file corresponding to this key
-							SAMFileWriter output = outputFiles.get(keyFlattened);
-							if(output == null){ // open new file, if none exists for this key
-								String outputFilename = (keyFlattened.toString() + fileExtension).replace(':', '-'); // Cromwell chokes on files with ':'
-								BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
-								if(useBAM){
-									output = outputFileFactory.makeBAMWriter(header, false, outputFile);
-								} else {
-									output = outputFileFactory.makeSAMWriter(header, false, outputFile);
-								}
-								outputFiles.put(keyFlattened, output); // 
+					SAMRecordIterator i = reader.iterator();
+					while(i.hasNext()){
+						// iterate through alignments
+						try{
+							SAMRecord record = i.next();
+							// parse out key, which is a 4-tuple of indices and barcodes
+							String readName = record.getReadName();
+							String [] readNameParts = readName.split(String.valueOf(MergedRead.KEY_SEPARATOR));
+							IndexAndBarcodeKey key = new IndexAndBarcodeKey(readNameParts[1]);
+
+							// for deduplication, write barcodes and read length to tag
+							int length = record.getReadLength();
+							DNASequence p5Barcode = barcodes.getBarcode(key.getP5Label());
+							DNASequence p7Barcode = barcodes.getBarcode(key.getP7Label());
+							String duplicate_marker = 
+									(p5Barcode != null ? p5Barcode.toString() : "") + IndexAndBarcodeKey.FIELD_SEPARATOR +
+									(p7Barcode != null ? p7Barcode.toString() : "") + IndexAndBarcodeKey.FIELD_SEPARATOR +
+									length;
+							record.setAttribute(duplicatesSAMTag, duplicate_marker);
+							// remove the key from the read name
+							String readNameNoKey = readNameParts[0];
+							record.setReadName(readNameNoKey);
+
+							IndexAndBarcodeKey keyFlattened = key.flatten();
+							// record statistics
+							// count of demultiplexed reads is for checking consistency
+							statistics.increment(keyFlattened, DEMULTIPLEXED);
+							if(!record.getReadUnmappedFlag()){ // read is mapped
+								statistics.increment(keyFlattened, ALIGNED);
 							}
-							// write alignment to file
-							output.addAlignment(record);
+
+							// write only to open files for top keys
+							if(outputFilesConcurrent.containsKey(keyFlattened)){
+								// find file corresponding to this key
+								SAMFileWriter output = outputFilesConcurrent.get(keyFlattened);
+								if(output == null){ // open new file, if none exists for this key
+									String outputFilename = (keyFlattened.toString() + fileExtension).replace(':', '-'); // Cromwell chokes on files with ':'
+									BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
+									if(useBAM){
+										output = outputFileFactory.makeBAMWriter(header, false, outputFile);
+									} else {
+										output = outputFileFactory.makeSAMWriter(header, false, outputFile);
+									}
+									outputFilesConcurrent.put(keyFlattened, output); // 
+								}
+								// write alignment to file
+								output.addAlignment(record);
+							}
+						} catch (SAMFormatException e){
+							System.err.print(filename + "\t");
+							System.err.println(e);
+							// ignore this record and continue to the next
+						} catch (Exception e){
+							System.err.print(filename + "\t");
+							System.err.println(e);
+							e.printStackTrace(System.err);
 						}
-					} catch (SAMFormatException e){
-						System.err.print(filename + "\t");
-						System.err.println(e);
-						// ignore this record and continue to the next
-					} catch (Exception e){
-						System.err.print(filename + "\t");
-						System.err.println(e);
-						e.printStackTrace(System.err);
 					}
 				}
 			}
+			// cleanup, close all output files
+			for(SAMFileWriter writer : outputFilesConcurrent.values()){
+				if(writer != null){
+					writer.close();
+				}
+			}
+			outputFilesConcurrent.clear();
 		}
 		System.out.println(statistics.toStringSorted(IndexAndBarcodeScreener.RAW));
-		// cleanup, close all files
-		for(SAMFileWriter writer : outputFiles.values()){
-			if(writer != null){
-				writer.close();
-			}
-		}
 	}
 }
