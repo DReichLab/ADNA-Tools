@@ -12,10 +12,17 @@ import org.apache.commons.cli.ParseException;
  *
  */
 public class Driver {
-
 	public static void main(String[] args) throws ParseException, IOException, java.text.ParseException {
-		String command = args[0];
-		String [] remainingArgs = Arrays.copyOfRange(args, 1, args.length);
+		final String versionOption = "version";
+		String command;
+		String [] remainingArgs = new String[0];
+		
+		if(args.length == 0)
+			command = versionOption;
+		else {
+			command = args[0];
+			remainingArgs = Arrays.copyOfRange(args, 1, args.length);
+		}
 		switch(command.toLowerCase()){
 		case "barcodecount":
 			BarcodeCount.main(remainingArgs);
@@ -41,9 +48,19 @@ public class Driver {
 		case "assignreadgroups":
 			AssignReadGroups.main(remainingArgs);
 			break;
+		case versionOption:
+			System.out.println(versionString());
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}
+	}
+	
+	public static String versionString() {
+		String version = Driver.class.getPackage().getImplementationVersion();
+		if (version == null)
+			version = "development";
+		return version;
 	}
 
 }
