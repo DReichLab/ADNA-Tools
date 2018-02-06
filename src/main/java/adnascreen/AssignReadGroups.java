@@ -36,9 +36,9 @@ import htsjdk.samtools.SamReaderFactory;
  *
  */
 public class AssignReadGroups {
+	private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+	
 	public static void main(String [] args) throws ParseException, IOException, java.text.ParseException{
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-		
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
 		options.addRequiredOption("i", "input-filename", true, "input SAM/BAM filename");
@@ -49,7 +49,7 @@ public class AssignReadGroups {
 		options.addRequiredOption("d", "date", true, "sequencing date in YYYYMMDD format");
 		options.addOption("l", "library", true, "Library");
 		options.addOption("q", "sequencing-center", true, "sequencing center producing read");
-		options.addOption("p", "sequencing-platform", true, "sequencing center producing read");
+		options.addOption("p", "sequencing-platform", true, "sequencing platform producing read");
 		
 		CommandLine commandLine	= parser.parse( options, args );
 		
@@ -94,7 +94,7 @@ public class AssignReadGroups {
 				String platformUnit = String.format("%s.%d", flowcellID, lane);
 				if(!readGroups.containsKey(platformUnit)){
 					// combine with label and data
-					String readGroupID = String.format("%s_%s_%s_%d", dateFormat.format(date), label, flowcellID, lane);
+					String readGroupID = assembleReadGroupID(label, date, flowcellID, lane);
 					
 					SAMReadGroupRecord group = new SAMReadGroupRecord(readGroupID);
 					if(sequencingCenter != null)
@@ -146,12 +146,17 @@ public class AssignReadGroups {
 				record.setReadName(shortenedReadName);
 				
 				// set read group
-				String readGroupID = String.format("%s_%s_%s_%d", dateFormat.format(date), label, flowcellID, lane);
+				String readGroupID = assembleReadGroupID(label, date, flowcellID, lane);
 				record.setAttribute(SAMTag.RG.toString(), readGroupID);
 				// write to file with read group
 				output.addAlignment(record);
 			}
 			output.close();
 		}
+	}
+	
+	public static String assembleReadGroupID(String label, Date date, String flowcellID, int lane) {
+		String readGroupID = String.format("%s_%s_%s_%d", label, dateFormat.format(date), flowcellID, lane);
+		return readGroupID;
 	}
 }
