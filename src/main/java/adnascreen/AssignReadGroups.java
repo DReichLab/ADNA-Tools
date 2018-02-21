@@ -56,7 +56,7 @@ public class AssignReadGroups {
 		String filename = commandLine.getOptionValue("input-filename");
 		String outputFilename = commandLine.getOptionValue("output-filename");
 		String sampleID = commandLine.getOptionValue("sample");
-		boolean useBAM = commandLine.hasOption("BAM");
+		boolean useBAM = commandLine.hasOption("BAM") || Driver.isBAMFilename(outputFilename);
 		String label = commandLine.getOptionValue("label", "");
 		String dateString = commandLine.getOptionValue("date");
 		Date date = dateFormat.parse(dateString);

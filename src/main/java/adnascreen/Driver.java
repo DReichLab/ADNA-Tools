@@ -51,6 +51,12 @@ public class Driver {
 		case versionOption:
 			System.out.println(versionString());
 			break;
+		case "filtersam":
+			FilterSAM.main(remainingArgs);
+			break;
+		case "duplicateshistogram":
+			DuplicatesHistogram.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}
@@ -61,6 +67,10 @@ public class Driver {
 		if (version == null)
 			version = "development";
 		return version;
+	}
+	
+	public static boolean isBAMFilename(String filename) {
+		return filename.endsWith(".bam");
 	}
 
 }

@@ -46,7 +46,7 @@ public class SoftClip {
 		int numberOfBasesToClip = Integer.valueOf(commandLine.getOptionValue('n'));
 		String inputFilename = commandLine.getOptionValue('i');
 		String outputFilename = commandLine.getOptionValue('o');
-		boolean useBAM = commandLine.hasOption('b');
+		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
 		
 		SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilename)));
 		try(
