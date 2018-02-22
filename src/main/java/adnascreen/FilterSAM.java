@@ -41,6 +41,8 @@ public class FilterSAM {
 		options.addRequiredOption("Q", "minimum_base_quality", true, "minimum base quality");
 		options.addRequiredOption("p", "positions", true, "positions file in BED format");
 		options.addOption("b", "BAM", false, "Use bam files for output");
+		options.addOption("c", "soft_clip", true, "bases to soft clip from clip for deamination damage");
+		
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int minimumMappingQuality = Integer.valueOf(commandLine.getOptionValue('q'));
@@ -49,6 +51,7 @@ public class FilterSAM {
 		String outputFilename = commandLine.getOptionValue('o');
 		String bedFilename = commandLine.getOptionValue('p');
 		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
+		int softClipBases = Integer.valueOf(commandLine.getOptionValue('c', "0"));
 		
 		SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilename)));
 		try(
@@ -72,15 +75,19 @@ public class FilterSAM {
 				SAMRecord record = null;
 				try{
 					record = i.next();
-					if(!record.getReadUnmappedFlag() && 
-							filter.filter(record, minimumMappingQuality, minimumBaseQuality)) {
-						output.addAlignment(record);
+					if(!record.getReadUnmappedFlag()) {
+						if(softClipBases > 0)
+							SoftClip.softClipBothEndsOfRead(record, softClipBases);
+						if (filter.filter(record, minimumMappingQuality, minimumBaseQuality)) {
+							output.addAlignment(record);
+						}
 					}				
 				}
 				catch(Exception e){
 					System.err.println(e.toString());
-					if(record != null)
+					if(record != null) {
 						System.err.println(record.toString());
+					}
 				}
 			}
 			
