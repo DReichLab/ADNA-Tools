@@ -37,16 +37,16 @@ public class FilterSAM {
 		Options options = new Options();
 		options.addRequiredOption("i", "input_BAM", true, "Input BAM filename");
 		options.addRequiredOption("o", "output_BAM", true, "Output BAM filename");
-		options.addRequiredOption("q", "minimum_mapping_quality", true, "minimum mapping quality");
-		options.addRequiredOption("Q", "minimum_base_quality", true, "minimum base quality");
+		options.addRequiredOption("m", "minimum_mapping_quality", true, "minimum mapping quality");
+		options.addRequiredOption("q", "minimum_base_quality", true, "minimum base quality");
 		options.addRequiredOption("p", "positions", true, "positions file in BED format");
 		options.addOption("b", "BAM", false, "Use bam files for output");
 		options.addOption("c", "soft_clip", true, "bases to soft clip from clip for deamination damage");
 		
 		CommandLine commandLine	= parser.parse(options, args);
 		
-		int minimumMappingQuality = Integer.valueOf(commandLine.getOptionValue('q'));
-		int minimumBaseQuality = Integer.valueOf(commandLine.getOptionValue('Q'));
+		int minimumMappingQuality = Integer.valueOf(commandLine.getOptionValue("minimum_mapping_quality"));
+		int minimumBaseQuality = Integer.valueOf(commandLine.getOptionValue("minimum_base_quality"));
 		String inputFilename = commandLine.getOptionValue('i');
 		String outputFilename = commandLine.getOptionValue('o');
 		String bedFilename = commandLine.getOptionValue('p');
