@@ -18,9 +18,13 @@ public class AggregateStatistics {
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
 		options.addOption("s", "sort", true, "field to sort descending");
+		options.addOption("k", "key", true, "sample key ");
+		options.addOption("l", "label", true, "label to retrieve for key");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		String sortField = commandLine.getOptionValue('s', IndexAndBarcodeScreener.RAW);
+		String keyString = commandLine.getOptionValue('k', null);
+		String label = commandLine.getOptionValue('l', null);
 		
 		// read statistics from set of files
 		SampleSetsCounter statistics = new SampleSetsCounter();
@@ -29,7 +33,13 @@ public class AggregateStatistics {
 			SampleSetsCounter current = new SampleSetsCounter(f);
 			statistics.combine(current);
 		}
-		// output combined statistics
-		System.out.println(statistics.toStringSorted(sortField));
+		// retrieve one value if both key and label are specified
+		if(keyString != null && label != null) {
+			IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+			System.out.println(statistics.get(key, label));
+		}
+		else { // output combined statistics
+			System.out.println(statistics.toStringSorted(sortField));
+		}
 	}
 }
