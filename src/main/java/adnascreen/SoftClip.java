@@ -118,17 +118,35 @@ public class SoftClip {
 		
 		int alignmentStartOffset = 0; // number of bases to move alignment start, and amount to change MD field
 		int endSideChange = 0; // modifies MD only
-		for (int n = 0; n < numberOfBasesToClip; n++){
+		
+		int n = 0;
+		int clippedBases = 0;
+		// clip bases from front
+		while(clippedBases < numberOfBasesToClip) {
 			CigarOperator startSide = CigarOperator.characterToEnum(cigarUnrolled[n]);
 			if(startSide.consumesReferenceBases()){
 				alignmentStartOffset++;
 			}
+			if(startSide.consumesReadBases()) {
+				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
+				clippedBases++;
+			}
+			n++;
+		}
+		
+		// clip bases from rear
+		n = 0;
+		clippedBases = 0;
+		while(clippedBases < numberOfBasesToClip) {
 			CigarOperator endSide = CigarOperator.characterToEnum(cigarUnrolled[cigarUnrolled.length - n - 1]);
 			if(endSide.consumesReferenceBases()){
 				endSideChange++;
 			}
-			cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
-			cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
+			if(endSide.consumesReadBases()) {
+				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
+				clippedBases++;
+			}
+			n++;
 		}
 		
 		record.setAlignmentStart(startingAlignmentPosition + alignmentStartOffset);

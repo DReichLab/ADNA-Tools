@@ -349,7 +349,7 @@ public class SoftClipTest {
 		original.setAttribute("MD", "0A17T1^C23C7");
 		original.setAttribute("NM", 4);
 		
-		SoftClip.softClipBothEndsOfRead(record, 2);
+		SoftClip.softClipBothEndsOfRead(record, basesToClip);
 		assertEquals(readName, record.getReadName());
 		assertEquals(referenceName, record.getReferenceName());
 		assertEquals(flags, record.getFlags());
@@ -379,5 +379,50 @@ public class SoftClipTest {
 		 * EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE	
 		 * X0:i:2	X1:i:0	XA:Z:16,+75842244,8M4I41M,4;	MD:Z:7C41	XD:Z:48-91-Q11.2-Q43.4_53	XG:i:4	NM:i:5	XM:i:0	XO:i:2	XT:A:R
 		 * */
+	}
+	
+	@Test
+	public void deletion() {
+		/*
+		NS500217:488:HWCHLBGX3:3:22409:9911:4321        16      19      38504979        37      1M2D2M4I77M     *       0       0       
+		CTGATAAAAGCGTGCAGCACCACCAAATCTGCCACTCATGAGACCAGCACAGAGGAATTACAGAAATGTTGAAGTCAGGACATC        
+		AAAAAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAA    
+		X0:i:1      X1:i:0  MD:Z:1^CG79     XD:Z:__84       XG:i:2  NM:i:6  XM:i:3  XO:i:1  XT:A:U
+		*/
+		String readName = "test";
+		String referenceName = "19";
+		int flags = 16;
+		int alignmentStart = 38504979;
+		String readString = "CTGATAAAAGCGTGCAGCACCACCAAATCTGCCACTCATGAGACCAGCACAGAGGAATTACAGAAATGTTGAAGTCAGGACATC";
+		String qualityString = "AAAAAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAA";
+		
+		int readLength = 84;
+		
+		SAMRecord record = new SAMRecord(null);
+		record.setReadName(readName);
+		record.setReferenceName(referenceName);
+		record.setFlags(flags);
+		record.setAlignmentStart(alignmentStart);
+		record.setReadString(readString);
+		record.setBaseQualityString(qualityString);
+		record.setMappingQuality(37);
+		record.setCigarString("1M2D2M4I77M");
+		record.setAttribute("MD", "1^CG79");
+		record.setAttribute("NM", 6);
+		
+		int basesToClip = 2;
+		SoftClip.softClipBothEndsOfRead(record, basesToClip);
+		assertEquals(readName, record.getReadName());
+		assertEquals(referenceName, record.getReferenceName());
+		assertEquals(flags, record.getFlags());
+		assertEquals(alignmentStart + basesToClip + 2, record.getAlignmentStart()); // two bases clipped plus two deletions
+		assertEquals(readString, record.getReadString());
+		assertEquals(qualityString, record.getBaseQualityString());
+		assertEquals("1S2D1S1M4I75M2S", record.getCigarString());
+		assertEquals("76", record.getAttribute("MD"));
+		assertEquals(4, record.getAttribute("NM"));
+		
+		record.validateCigar(-1);
+		assertNull(record.isValid());
 	}
 }
