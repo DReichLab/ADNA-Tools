@@ -121,6 +121,7 @@ public class SoftClip {
 		
 		int n = 0;
 		int clippedBases = 0;
+		int hardClipped = 0;
 		// clip bases from front
 		while(clippedBases < numberOfBasesToClip) {
 			CigarOperator startSide = CigarOperator.characterToEnum(cigarUnrolled[n]);
@@ -131,12 +132,25 @@ public class SoftClip {
 				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
 				clippedBases++;
 			}
+			else if (!startSide.equals(CigarOperator.SOFT_CLIP)){
+				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.HARD_CLIP);
+				hardClipped++;
+			}
 			n++;
+		}
+		// hard clipped bases must be before soft clipped bases
+		int totalClippedBases = n;
+		for(n = 0; n < totalClippedBases; n++) {
+			if(n < hardClipped)
+				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.HARD_CLIP);
+			else
+				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
 		}
 		
 		// clip bases from rear
 		n = 0;
 		clippedBases = 0;
+		hardClipped = 0;
 		while(clippedBases < numberOfBasesToClip) {
 			CigarOperator endSide = CigarOperator.characterToEnum(cigarUnrolled[cigarUnrolled.length - n - 1]);
 			if(endSide.consumesReferenceBases()){
@@ -146,7 +160,19 @@ public class SoftClip {
 				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
 				clippedBases++;
 			}
+			else if (!endSide.equals(CigarOperator.SOFT_CLIP)){
+				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.HARD_CLIP);
+				hardClipped++;
+			}
 			n++;
+		}
+		// hard clipped bases must be before soft clipped bases
+		totalClippedBases = n;
+		for(n = 0; n < totalClippedBases; n++) {
+			if(n < hardClipped)
+				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.HARD_CLIP);
+			else
+				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
 		}
 		
 		record.setAlignmentStart(startingAlignmentPosition + alignmentStartOffset);

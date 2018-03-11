@@ -410,6 +410,18 @@ public class SoftClipTest {
 		record.setAttribute("MD", "1^CG79");
 		record.setAttribute("NM", 6);
 		
+		SAMRecord copy = new SAMRecord(null);
+		copy.setReadName(readName);
+		copy.setReferenceName(referenceName);
+		copy.setFlags(flags);
+		copy.setAlignmentStart(alignmentStart);
+		copy.setReadString(readString);
+		copy.setBaseQualityString(qualityString);
+		copy.setMappingQuality(37);
+		copy.setCigarString("1M2D2M4I77M");
+		copy.setAttribute("MD", "1^CG79");
+		copy.setAttribute("NM", 6);
+		
 		int basesToClip = 2;
 		SoftClip.softClipBothEndsOfRead(record, basesToClip);
 		assertEquals(readName, record.getReadName());
@@ -418,11 +430,16 @@ public class SoftClipTest {
 		assertEquals(alignmentStart + basesToClip + 2, record.getAlignmentStart()); // two bases clipped plus two deletions
 		assertEquals(readString, record.getReadString());
 		assertEquals(qualityString, record.getBaseQualityString());
-		assertEquals("1S2D1S1M4I75M2S", record.getCigarString());
+		//assertEquals("1S2H1S1M4I75M2S", record.getCigarString()); // expected, but illegal because hard clip after soft clip
+		assertEquals("2H2S1M4I75M2S", record.getCigarString());
 		assertEquals("76", record.getAttribute("MD"));
 		assertEquals(4, record.getAttribute("NM"));
 		
 		record.validateCigar(-1);
 		assertNull(record.isValid());
+		
+		for (int i = record.getAlignmentStart(); i < record.getAlignmentEnd(); i++){
+			assertEquals(copy.getReadPositionAtReferencePosition(i), record.getReadPositionAtReferencePosition(i));
+		}
 	}
 }
