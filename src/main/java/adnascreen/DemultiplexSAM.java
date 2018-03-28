@@ -67,10 +67,15 @@ public class DemultiplexSAM {
 			try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
 				String entryLine;
 				while((entryLine = reader.readLine()) != null){
-					String [] fields = entryLine.split("\t");
-					String keyString = fields[0];
-					IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-					outputFilesAll.add(key);
+					try {
+						String [] fields = entryLine.split("\t");
+						String keyString = fields[0];
+						IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+						outputFilesAll.add(key);
+					}
+					catch(Exception e) {
+						System.err.println(e.toString());
+					}
 				}
 			}
 		}
