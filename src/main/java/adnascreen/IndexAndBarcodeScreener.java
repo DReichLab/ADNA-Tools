@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -59,6 +60,7 @@ public class IndexAndBarcodeScreener {
 		options.addOption("r", "read-group-file", true, "Output file for read group");
 		options.addOption("c", "barcode-count", true, "File containing prior pass's counts of keys with(out) barcodes by index pair to determine whether to demultiplex with barcodes");
 		options.addOption("t", "barcode-threshold", true, "Threshold for count to use barcode length over no barcodes");
+		options.addOption("x", "index-barcode-keys", true, "Index-barcode keys for setting explicit barcode lengths");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -82,6 +84,13 @@ public class IndexAndBarcodeScreener {
 			barcodes = new BarcodeMatcher(commandLine.getOptionValue('b'), maxHammingDistance);
 		} catch(IOException e){
 			System.exit(1);
+		}
+		
+		// optional specification of barcode lengths from index-barcode key file
+		Map<IndexAndBarcodeKey, Integer> barcodeLengthsFromSampleSheet = null;
+		String explicitIndexFile = commandLine.getOptionValue("index-barcode-keys", null);
+		if (explicitIndexFile != null) {
+			barcodeLengthsFromSampleSheet = barcodeLengthsByIndexPair(explicitIndexFile, barcodes);
 		}
 		
 		// A previous pass through the data is needed to count the number of paired reads
@@ -130,11 +139,16 @@ public class IndexAndBarcodeScreener {
 				int barcodeLength = -1;
 				if(barcodeCountStatistics != null && keyIndexOnly != null){
 					// We assume that for a given index pair, barcodes are all the same length
+					// We first use the index-barcode key file, if given, then
 					// We use the 4-tuple with maximum count to determine the barcode length for this index pair
 					if(barcodeLengthByIndexPairCache.containsKey(keyIndexOnly)){
 						barcodeLength = barcodeLengthByIndexPairCache.get(keyIndexOnly);
 					} else{
-						barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes, barcodeToNoBarcodeThreshold);
+						if (barcodeLengthsFromSampleSheet != null && barcodeLengthsFromSampleSheet.containsKey(keyIndexOnly)) {
+							barcodeLength = barcodeLengthsFromSampleSheet.get(keyIndexOnly);
+						} else {
+							barcodeLength = barcodeLengthFromPriorPassCounts(barcodeCountStatistics, keyIndexOnly, barcodes, barcodeToNoBarcodeThreshold);
+						}
 						barcodeLengthByIndexPairCache.put(keyIndexOnly, barcodeLength);
 					}
 				}
@@ -241,5 +255,42 @@ public class IndexAndBarcodeScreener {
 		}
 		
 		return barcodeLength;
+	}
+	
+	/**
+	 * Use the content from a file containing the index and barcode keys for samples to determine the barcode lengths for index pairs
+	 * Each index pair should have only one barcode length associated with it. 
+	 * @param explicitIndexFile
+	 * @param barcodes
+	 * @return
+	 * @throws IOException
+	 * @throws ParseException
+	 */
+	public static Map<IndexAndBarcodeKey, Integer> barcodeLengthsByIndexPair(String explicitIndexFile, BarcodeMatcher barcodes) throws IOException, ParseException{
+		HashMap<IndexAndBarcodeKey, Integer>  barcodeLengths = new HashMap<IndexAndBarcodeKey, Integer>();
+		try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
+			String entryLine;
+			while((entryLine = reader.readLine()) != null){
+				String [] fields = entryLine.split("\t");
+				String keyString = fields[0];
+				IndexAndBarcodeKey keyFlattened = new IndexAndBarcodeKey(keyString).flatten();
+				IndexAndBarcodeKey indexOnlyKey = new IndexAndBarcodeKey(keyFlattened.getI5Label(), keyFlattened.getI7Label(), null, null);
+				int length1 = barcodes.getBarcodeLength(keyFlattened.getP5Label());
+				int length2 = barcodes.getBarcodeLength(keyFlattened.getP7Label());
+				if(length1 == length2) {
+					if(barcodeLengths.containsKey(indexOnlyKey)){
+						// check that length matches any existing
+						int existingLength = barcodeLengths.get(indexOnlyKey);
+						if(existingLength != length1) {
+							throw new IllegalStateException("barcode length mismatch for multiple reads on same index pair");
+						}
+					}
+					barcodeLengths.put(indexOnlyKey, length1);
+				}
+				else
+					throw new IllegalStateException("barcode length mismatch on single read");
+			}
+		}
+		return barcodeLengths;
 	}
 }
