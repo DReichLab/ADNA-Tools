@@ -25,6 +25,7 @@ public class BarcodeLengthsFromSampleSheetTests {
 		barcodeMatcher.addReferenceSet("ACAACC", "ACAACC");
 		barcodeMatcher.addReferenceSet("CGCCATG:GTGGCAT:TATTGCA:ACAATGC", "CGCCATG:GTGGCAT:TATTGCA:ACAATGC");
 		barcodeMatcher.addReferenceSet("CATAGGC:GCACTTG:TGCGAAT:ATGTCCA", "CATAGGC:GCACTTG:TGCGAAT:ATGTCCA");
+		barcodeMatcher.addReferenceSet("GGTATCG:TTACAGT:AACGCTA:CCGTGAC", "GGTATCG:TTACAGT:AACGCTA:CCGTGAC"); // Q2
 		
 		Map<IndexAndBarcodeKey, Integer> lengths = IndexAndBarcodeScreener.barcodeLengthsByIndexPair(sampleSheetFilename, barcodeMatcher);
 		return lengths;
@@ -52,6 +53,22 @@ public class BarcodeLengthsFromSampleSheetTests {
 			int queryLength;
 			
 			IndexAndBarcodeKey query7 = new IndexAndBarcodeKey("CGCCGTC_TTGGTCA__");
+			queryLength = lengths.get(query7);
+			assertEquals(7, queryLength);
+		}
+		catch(Exception e){
+			fail(e.toString());
+		}
+	}
+	
+	// barcode is part of Q set, but not all four
+	@Test
+	public void testPartialQSet() {
+		try{
+			Map<IndexAndBarcodeKey, Integer> lengths = setupTest();
+			int queryLength;
+			
+			IndexAndBarcodeKey query7 = new IndexAndBarcodeKey("GATCCAA_GCTTCAG__");
 			queryLength = lengths.get(query7);
 			assertEquals(7, queryLength);
 		}

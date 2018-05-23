@@ -30,6 +30,7 @@ public class BarcodeMatcher {
 	private List<Integer> barcodeLengths;
 	private int maxHammingDistance;
 	public final static char INDEX_DELIMITER = '.';
+	public final static char BARCODE_DELIMITER = ':';
 	private Map<String, DNASequence> labelToBarcode;
 	
 	public BarcodeMatcher(){
@@ -77,7 +78,7 @@ public class BarcodeMatcher {
 	 * then cache should be called manually. 
 	 */
 	private void addReferenceSet(String barcodeSetString, String label, boolean clearCaches){
-		String [] barcodeStrings = barcodeSetString.toUpperCase().split(":");
+		String [] barcodeStrings = barcodeSetString.toUpperCase().split(String.valueOf(BARCODE_DELIMITER));
 		// check that barcodes are of the same length
 		if(barcodeStrings.length > 0){
 			int barcodeLength = -1;

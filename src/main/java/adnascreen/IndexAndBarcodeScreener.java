@@ -260,6 +260,8 @@ public class IndexAndBarcodeScreener {
 	/**
 	 * Use the content from a file containing the index and barcode keys for samples to determine the barcode lengths for index pairs
 	 * Each index pair should have only one barcode length associated with it. 
+	 * This function assumes that barcode and index base pair sequences are directly in the input file, 
+	 * and that the IndexBarcodeKey uses these directly without other labels. 
 	 * @param explicitIndexFile
 	 * @param barcodes
 	 * @return
@@ -270,13 +272,21 @@ public class IndexAndBarcodeScreener {
 		HashMap<IndexAndBarcodeKey, Integer>  barcodeLengths = new HashMap<IndexAndBarcodeKey, Integer>();
 		try(BufferedReader reader = new BufferedReader(new FileReader(explicitIndexFile))){
 			String entryLine;
-			while((entryLine = reader.readLine()) != null){
+			while((entryLine = reader.readLine()) != null && entryLine.length() > 0){
 				String [] fields = entryLine.split("\t");
 				String keyString = fields[0];
-				IndexAndBarcodeKey keyFlattened = new IndexAndBarcodeKey(keyString).flatten();
-				IndexAndBarcodeKey indexOnlyKey = new IndexAndBarcodeKey(keyFlattened.getI5Label(), keyFlattened.getI7Label(), null, null);
-				int length1 = barcodes.getBarcodeLength(keyFlattened.getP5Label());
-				int length2 = barcodes.getBarcodeLength(keyFlattened.getP7Label());
+				String [] basePairSequenceGroups = keyString.split(String.valueOf(IndexAndBarcodeKey.FIELD_SEPARATOR));
+				
+				String i5 = basePairSequenceGroups[0];
+				String i7 = basePairSequenceGroups[1];
+				IndexAndBarcodeKey indexOnlyKey = new IndexAndBarcodeKey(i5, i7, null, null);
+				
+				String stringP5 = basePairSequenceGroups[2].split(String.valueOf(BarcodeMatcher.BARCODE_DELIMITER))[0];
+				String stringP7 = basePairSequenceGroups[3].split(String.valueOf(BarcodeMatcher.BARCODE_DELIMITER))[0];
+				DNASequence singleP5 = new DNASequence(stringP5);
+				DNASequence singleP7 = new DNASequence(stringP7);
+				int length1 = singleP5.length();
+				int length2 = singleP7.length();
 				if(length1 == length2) {
 					if(barcodeLengths.containsKey(indexOnlyKey)){
 						// check that length matches any existing
@@ -285,6 +295,11 @@ public class IndexAndBarcodeScreener {
 							throw new IllegalStateException("barcode length mismatch for multiple reads on same index pair");
 						}
 					}
+					// check that barcodes are valid
+					if(barcodes.find(singleP5) == null || barcodes.find(singleP7) == null){
+						throw new IllegalStateException("barcode not found: " + singleP5.toString() + " " + singleP7.toString());
+					}
+					// store barcode length for this index pair
 					barcodeLengths.put(indexOnlyKey, length1);
 				}
 				else
