@@ -14,7 +14,7 @@ import java.util.stream.Stream;
  *
  */
 public class SampleSetsCounter {
-	private int raw;
+	private long raw;
 	private Map<IndexAndBarcodeKey, SampleCounter> sets;
 	
 	public SampleSetsCounter(){
@@ -27,7 +27,7 @@ public class SampleSetsCounter {
 
 		String [] lines = s.split("\n");
 		// first line is raw count
-		raw = Integer.valueOf(lines[0]);
+		raw = Long.valueOf(lines[0]);
 		for(int n = 1; n < lines.length; n++){
 			addKeyLine(lines[n]);
 		}
@@ -44,7 +44,7 @@ public class SampleSetsCounter {
 	public SampleSetsCounter(File input) throws IOException{
 		this();
 		try(BufferedReader reader = new BufferedReader(new FileReader(input))){
-			raw = Integer.valueOf(reader.readLine());
+			raw = Long.valueOf(reader.readLine());
 			reader.lines().forEach((String s) -> {
 				addKeyLine(s);
 			});
@@ -67,11 +67,11 @@ public class SampleSetsCounter {
 		}
 	}
 	
-	public int increment(){
+	public long increment(){
 		return ++raw;
 	}
 	
-	public int add(int value){
+	public long add(long value){
 		raw += value;
 		return raw;
 	}
