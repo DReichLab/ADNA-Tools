@@ -281,8 +281,12 @@ public class IndexAndBarcodeScreener {
 				String i7 = basePairSequenceGroups[1];
 				IndexAndBarcodeKey indexOnlyKey = new IndexAndBarcodeKey(i5, i7, null, null);
 				
-				String stringP5 = basePairSequenceGroups[2].split(String.valueOf(BarcodeMatcher.BARCODE_DELIMITER))[0];
-				String stringP7 = basePairSequenceGroups[3].split(String.valueOf(BarcodeMatcher.BARCODE_DELIMITER))[0];
+				String stringP5 = "";
+				String stringP7 = "";
+				if (basePairSequenceGroups.length > 2)
+					stringP5 = basePairSequenceGroups[2].split(String.valueOf(BarcodeMatcher.BARCODE_DELIMITER))[0];
+				if (basePairSequenceGroups.length > 3)
+					stringP7 = basePairSequenceGroups[3].split(String.valueOf(BarcodeMatcher.BARCODE_DELIMITER))[0];
 				DNASequence singleP5 = new DNASequence(stringP5);
 				DNASequence singleP7 = new DNASequence(stringP7);
 				int length1 = singleP5.length();
@@ -296,7 +300,7 @@ public class IndexAndBarcodeScreener {
 						}
 					}
 					// check that barcodes are valid
-					if(barcodes.find(singleP5) == null || barcodes.find(singleP7) == null){
+					if(length1 > 0 && (barcodes.find(singleP5) == null || barcodes.find(singleP7) == null)){
 						throw new IllegalStateException("barcode not found: " + singleP5.toString() + " " + singleP7.toString());
 					}
 					// store barcode length for this index pair

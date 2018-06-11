@@ -109,4 +109,23 @@ public class BarcodeLengthsFromSampleSheetTests {
 			fail("Wrong exception " + e.toString());
 		}
 	}
+	
+	@Test
+	public void no_barcodes() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String sampleSheetFilename = classLoader.getResource("no_barcodes.index_barcode_keys").getPath();
+		
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		int queryLength;
+		
+		try {
+			Map<IndexAndBarcodeKey, Integer> lengths = IndexAndBarcodeScreener.barcodeLengthsByIndexPair(sampleSheetFilename, barcodeMatcher);
+			IndexAndBarcodeKey query0 = new IndexAndBarcodeKey("CGAGATC_CCGTTGA__");
+			queryLength = lengths.get(query0);
+			assertEquals(0, queryLength);
+		}
+		catch(IOException | ParseException e) {
+			fail("");
+		}
+	}
 }
