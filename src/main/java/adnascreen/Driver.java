@@ -57,6 +57,9 @@ public class Driver {
 		case "duplicateshistogram":
 			DuplicatesHistogram.main(remainingArgs);
 			break;
+		case "readgrouprewrite":
+			ReadGroupRewrite.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}
