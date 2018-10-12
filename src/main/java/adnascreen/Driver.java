@@ -12,6 +12,8 @@ import org.apache.commons.cli.ParseException;
  *
  */
 public class Driver {
+	public static final String PROGRAM_NAME = "adnatools";
+	
 	public static void main(String[] args) throws ParseException, IOException, java.text.ParseException {
 		final String versionOption = "version";
 		String command;

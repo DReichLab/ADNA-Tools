@@ -16,6 +16,7 @@ import org.apache.commons.cli.ParseException;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMProgramRecord;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -90,6 +91,33 @@ public class ReadGroupRewrite {
 					readGroup.setPlatform(sequencingPlatform);
 				}
 			}
+			// add program group header
+			List<SAMProgramRecord> programEntries = header.getProgramRecords();
+			// ensure unique ID
+			int count = 0;
+			boolean found;
+			String candidateID;
+			do {
+				count++;
+				found = false;
+				candidateID = Driver.PROGRAM_NAME + '.' + count;
+				for(SAMProgramRecord entry : programEntries) {
+					if(entry.getId().equals(candidateID)) {
+						found = true;
+						break;
+					}
+				}
+			} while(found);
+			
+			SAMProgramRecord programEntry = new SAMProgramRecord(candidateID);
+			programEntry.setProgramVersion(Driver.versionString());
+			programEntry.setCommandLine("ReadGroupRewrite" + String.join(" ", args));
+			programEntry.setProgramName("ReadGroupRewrite");
+			// chain program entry to last entry
+			if(programEntries.size() > 0)
+				programEntry.setPreviousProgramGroupId(programEntries.get(programEntries.size()-1).getId());
+			header.addProgramRecord(programEntry);
+			
 			// rewrite alignment file with new header
 			SAMFileWriter output;
 			BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
