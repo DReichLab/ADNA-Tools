@@ -72,7 +72,7 @@ public class ReadGroupRewrite {
 					SAMReadGroupRecord.PlatformValue.valueOf(readGroup.getPlatform());
 				}
 				catch(IllegalArgumentException e) {
-					readGroup.setPlatform("");
+					readGroup.setPlatform(null);
 				}
 				
 				// replace any specified options
