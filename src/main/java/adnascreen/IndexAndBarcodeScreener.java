@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class IndexAndBarcodeScreener {
 	
 	public static final String RAW = "raw";
 	public static final String MERGED = "merged";
+	public static final String OLIGO = "oligo";
 
 	public static void main(String []args) throws IOException, ParseException{
 		CommandLineParser parser = new DefaultParser();
@@ -61,6 +63,7 @@ public class IndexAndBarcodeScreener {
 		options.addOption("c", "barcode-count", true, "File containing prior pass's counts of keys with(out) barcodes by index pair to determine whether to demultiplex with barcodes");
 		options.addOption("t", "barcode-threshold", true, "Threshold for count to use barcode length over no barcodes");
 		options.addOption("x", "index-barcode-keys", true, "Index-barcode keys for setting explicit barcode lengths");
+		options.addOption("z", "positive-oligo", true, "Provide count for reads matching provided positive oligo sequence");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -102,6 +105,18 @@ public class IndexAndBarcodeScreener {
 			barcodeCountStatistics = new SampleSetsCounter(barcodeCountStatisticsFile);
 		}
 		Map<IndexAndBarcodeKey, Integer> barcodeLengthByIndexPairCache = new HashMap<IndexAndBarcodeKey, Integer>();
+		
+		// positive oligo
+		// count the number of appearances of this sequence
+		// This is for wetlab diagnostic purposes
+		String positiveOligoSequence = commandLine.getOptionValue("positive-oligo", null);
+		Read positiveOligo = null;
+		Read positiveOligoReverseComplement = null;
+		if(positiveOligoSequence != null) {
+			String qualityString = String.join("", Collections.nCopies(positiveOligoSequence.length(), "I")); // oligo sequence is max quality
+			positiveOligo = new Read("", positiveOligoSequence, qualityString);
+			positiveOligoReverseComplement = positiveOligo.reverseComplement();
+		}
 
 		String[] remainingArgs = commandLine.getArgs();
 		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];
@@ -175,6 +190,13 @@ public class IndexAndBarcodeScreener {
 					} else { // read groups are expected to match for all reads in lane
 						if(!readGroup.equals(readGroupForThisRead)){
 							throw new IllegalStateException();
+						}
+					}
+					// count occurrences of positive oligo
+					if(positiveOligo != null) {
+						if(Read.alignmentAssessment(positiveOligo, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)
+							|| Read.alignmentAssessment(positiveOligoReverseComplement, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)) {
+							sampleSetCounter.increment(keyFlattened, OLIGO);
 						}
 					}
 				}
