@@ -193,7 +193,7 @@ public class IndexAndBarcodeScreener {
 						}
 					}
 					// count occurrences of positive oligo
-					if(positiveOligo != null) {
+					if(positiveOligo != null && merged != null) {
 						if(Read.alignmentAssessment(positiveOligo, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)
 							|| Read.alignmentAssessment(positiveOligoReverseComplement, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)) {
 							sampleSetCounter.increment(keyFlattened, OLIGO);
