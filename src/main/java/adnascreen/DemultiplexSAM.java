@@ -88,21 +88,26 @@ public class DemultiplexSAM {
 			Integer.valueOf(reader.readLine());
 			for(int n = 0; n < numTopSamples; n++){
 				String entryLine = reader.readLine();
-				String [] fields = entryLine.split("\t");
-				String keyString = fields[0];
-				
-				// locate the raw label and its count
-				int rawIndex = 1;
-				while(rawIndex < fields.length && !fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
-					rawIndex += 2;
-				}
-				
-				if(rawIndex < fields.length && fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
-					int rawCount = Integer.valueOf(fields[rawIndex + 1]);
-					if(rawCount >= minimumReads){
-						IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-						outputFilesAll.add(key);
+				if(entryLine != null) {
+					String [] fields = entryLine.split("\t");
+					String keyString = fields[0];
+
+					// locate the raw label and its count
+					int rawIndex = 1;
+					while(rawIndex < fields.length && !fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
+						rawIndex += 2;
 					}
+
+					if(rawIndex < fields.length && fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
+						int rawCount = Integer.valueOf(fields[rawIndex + 1]);
+						if(rawCount >= minimumReads){
+							IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+							outputFilesAll.add(key);
+						}
+					}
+				}
+				else { // entryLine is null, which means we have reached the end of the file
+					break;
 				}
 			}
 		}
