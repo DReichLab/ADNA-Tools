@@ -5,6 +5,7 @@ import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -20,6 +21,7 @@ import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMValidationError;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
@@ -69,7 +71,21 @@ public class SoftClip {
 				try{
 					SAMRecord record = i.next();
 					softClipBothEndsOfRead(record, numberOfBasesToClip);
-					output.addAlignment(record);
+					// very short reads may be entirely clipped
+					// remove these from the data set, and keep only reads with at least one (mis)match
+					Cigar cigar = record.getCigar();
+					if(cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH)) {
+						output.addAlignment(record);
+						
+						// diagnostic prints for validation failures
+						List<SAMValidationError> errors = record.isValid();
+						if(errors != null) {
+							for(SAMValidationError error : errors) {
+								System.err.println(error.toString());
+							}
+							System.err.println(record.toString());
+						}
+					}
 				}
 				catch(Exception e){
 					System.err.println(e.toString());

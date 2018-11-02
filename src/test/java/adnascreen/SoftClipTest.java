@@ -3,11 +3,16 @@ package adnascreen;
 import static org.junit.Assert.*;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.cli.ParseException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
@@ -20,6 +25,9 @@ import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.TextCigarCodec;
 
 public class SoftClipTest {
+	@Rule
+	public TemporaryFolder testFolder = new TemporaryFolder();
+	
 	@Test
 	public void fileTest(){
 		ClassLoader classLoader = getClass().getClassLoader();
@@ -440,6 +448,56 @@ public class SoftClipTest {
 		
 		for (int i = record.getAlignmentStart(); i < record.getAlignmentEnd(); i++){
 			assertEquals(copy.getReadPositionAtReferencePosition(i), record.getReadPositionAtReferencePosition(i));
+		}
+	}
+	
+	// For very short reads, clipping may result in read disappearing. Handle this edge case.
+	@Test
+	public void shortReadEntirelyClipped() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String samToClip = classLoader.getResource("shortReadForClipping.sam").getPath();
+		final int basesToClip = 20; // Clip more bases than are in a read
+		try {
+			// clip test file
+			File clippledSam = testFolder.newFile("clipped.sam");
+			String clippedSamFilename = clippledSam.getAbsolutePath();
+			String [] args = {"-n", String.valueOf(basesToClip), "-i", samToClip, "-o", clippedSamFilename};
+			SoftClip.main(args);
+			
+			SamInputResource bufferedSAMFile;
+			SamReader reader;
+			SAMRecordIterator i;
+			// count reads in input file
+			int inputCount = 0;
+			bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(samToClip)));
+			reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+			i = reader.iterator();
+			while(i.hasNext()){
+				SAMRecord record = i.next();
+				assertNull(record.isValid()); // check that input reads
+				Cigar cigar = record.getCigar();
+				assertTrue(cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH)); // this is our definition of nonempty
+				inputCount++;
+			}
+			
+			// verify output has no empty reads
+			int outputCount = 0;
+			bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(clippedSamFilename)));
+			reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+			i = reader.iterator();
+			assertTrue(i.hasNext());
+			while(i.hasNext()){
+				SAMRecord record = i.next();
+				assertNull(record.isValid());
+				Cigar cigar = record.getCigar();
+				assertTrue(cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH)); // this is our definition of nonempty
+				outputCount++;
+			}
+			
+			// empty reads are dropped; there should be fewer output reads than input reads
+			assertTrue(outputCount < inputCount);
+		} catch (IOException | ParseException e) {
+			fail();
 		}
 	}
 }
