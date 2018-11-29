@@ -17,12 +17,14 @@ import org.junit.rules.TemporaryFolder;
 import htsjdk.samtools.Cigar;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.TextCigarCodec;
+import htsjdk.samtools.util.CigarUtil;
 
 public class SoftClipTest {
 	@Rule
@@ -497,6 +499,60 @@ public class SoftClipTest {
 			// empty reads are dropped; there should be fewer output reads than input reads
 			assertTrue(outputCount < inputCount);
 		} catch (IOException | ParseException e) {
+			fail();
+		}
+	}
+	
+	@Test
+	public void multiLengthClipping() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("multi_lib.sam").getPath();
+		try {
+			File clippledSam = testFolder.newFile("clipped.sam");
+			String clippedSamFilename = clippledSam.getAbsolutePath();
+			String [] args = {"-n", "2", "-i", filename, "-o", clippedSamFilename, "-x", "10", "-l", "Lib2", "-l", "Lib3", "-y", "-0", "-m", "Lib4"};
+			SoftClip.main(args);
+			
+			// check clipping in new file
+			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(clippedSamFilename)));
+			SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+			SAMRecordIterator i = reader.iterator();
+			assertTrue(i.hasNext());
+			while(i.hasNext()){
+				SAMRecord record = i.next();
+				SAMReadGroupRecord readGroup = record.getReadGroup();
+				assertNull(record.isValid());
+				
+				int expectedClippedBases = -1;
+				String library = readGroup.getLibrary();
+				switch(library) {
+				case "Lib1":
+					expectedClippedBases = 2;
+					break;
+				case "Lib2":
+				case "Lib3":
+					expectedClippedBases = 10;
+					break;
+				case "Lib4":
+					expectedClippedBases = 0;
+					break;
+				default:
+					fail(); // all reads should have a read group and library
+				}
+				Cigar cigar = record.getCigar();
+				char [] cigarUnrolled = CigarUtil.cigarArrayFromElements(cigar.getCigarElements() );
+				// ends of reads should be soft clipped
+				for(int n = 0; n < expectedClippedBases; n++) {
+					assertEquals(cigarUnrolled[n], 'S');
+					assertEquals(cigarUnrolled[cigarUnrolled.length - (1 + n)], 'S');
+				}
+				// further in, read should not be soft clipped
+				assertNotEquals(cigarUnrolled[expectedClippedBases], 'S');
+				assertNotEquals(cigarUnrolled[cigarUnrolled.length - (1 + expectedClippedBases)], 'S');
+			}
+		} catch (ParseException e) {
+			fail();
+		} catch (IOException e) {
 			fail();
 		}
 	}

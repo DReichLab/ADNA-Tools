@@ -5,6 +5,7 @@ import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
@@ -19,6 +20,7 @@ import htsjdk.samtools.CigarOperator;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
 import htsjdk.samtools.SAMValidationError;
@@ -43,12 +45,34 @@ public class SoftClip {
 		options.addRequiredOption("i", "input BAM", true, "Input BAM filename");
 		options.addRequiredOption("o", "output BAM", true, "Output BAM filename");
 		options.addOption("b", "BAM", false, "Use bam files for output");
+		// For mixed UDG bams, specify the number of bases for a second and third case 
+		options.addOption("x", "numBasesSpecial1", true, "Number of bases to clip from both start and end for reads in corresponding read groups, as exception to normal clipping");
+		options.addOption("l", "libraries1", true, "libraries to clip with numBasesSpecial1");
+		options.addOption("y", "numBasesSpecial2", true, "Number of bases to clip from both start and end for reads in corresponding read groups, as exception to normal clipping");
+		options.addOption("m", "libraries2", true, "libraries to clip with numBasesSpecial2");
 		CommandLine commandLine	= parser.parse(options, args);
 		
-		int numberOfBasesToClip = Integer.valueOf(commandLine.getOptionValue('n'));
+		int defaultNumberOfBasesToClip = Integer.valueOf(commandLine.getOptionValue('n'));
 		String inputFilename = commandLine.getOptionValue('i');
 		String outputFilename = commandLine.getOptionValue('o');
 		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
+		
+		// clipping for command line specified libraries to handle separate UDG treatments 
+		HashMap<String, Integer> clippingLengthByLibrary = new HashMap<String, Integer>();
+		int numberOfBasesToClipSpecial1 = Integer.valueOf(commandLine.getOptionValue('x', "0"));
+		String[] specialClippingLibrariesArray1 = commandLine.getOptionValues("libraries1");
+		if (specialClippingLibrariesArray1 != null) {
+			for(String library : specialClippingLibrariesArray1) {
+				clippingLengthByLibrary.put(library, numberOfBasesToClipSpecial1);
+			}
+		}
+		int numberOfBasesToClipSpecial2 = Integer.valueOf(commandLine.getOptionValue('y', "0"));
+		String[] specialClippingLibrariesArray2 = commandLine.getOptionValues("libraries2");
+		if (specialClippingLibrariesArray2 != null) {
+			for(String library : specialClippingLibrariesArray2) {
+				clippingLengthByLibrary.put(library, numberOfBasesToClipSpecial2);
+			}
+		}
 		
 		SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilename)));
 		try(
@@ -70,7 +94,19 @@ public class SoftClip {
 				// iterate through alignments
 				try{
 					SAMRecord record = i.next();
+					int numberOfBasesToClip = defaultNumberOfBasesToClip;
+					
+					// clipping length depends on library
+					SAMReadGroupRecord readGroup = record.getReadGroup();
+					if(readGroup != null) {
+						String library = readGroup.getLibrary();
+						if(library != null) {
+							numberOfBasesToClip = clippingLengthByLibrary.getOrDefault(library, defaultNumberOfBasesToClip);
+						}
+					}
+					
 					softClipBothEndsOfRead(record, numberOfBasesToClip);
+					
 					// very short reads may be entirely clipped
 					// remove these from the data set, and keep only reads with at least one (mis)match
 					Cigar cigar = record.getCigar();
