@@ -15,11 +15,11 @@ import java.util.stream.Stream;
  */
 public class SampleSetsCounter {
 	private long raw;
-	private Map<IndexAndBarcodeKey, SampleCounter> sets;
+	private Map<String, SampleCounter> sets;
 	
 	public SampleSetsCounter(){
 		raw = 0;
-		sets = new HashMap<IndexAndBarcodeKey, SampleCounter>();
+		sets = new HashMap<String, SampleCounter>();
 	}
 	
 	public SampleSetsCounter(String s){
@@ -58,7 +58,7 @@ public class SampleSetsCounter {
 	private void addKeyLine(String s){
 		String [] fields = s.split("\t");
 		// leftmost field is key
-		IndexAndBarcodeKey key = new IndexAndBarcodeKey(fields[0]);
+		String key = new String(fields[0]);
 		// followed by pairs of labels with counts
 		for(int i = 1; i + 1 < fields.length; i += 2){
 			String label = fields[i];
@@ -76,7 +76,7 @@ public class SampleSetsCounter {
 		return raw;
 	}
 	
-	public int increment(IndexAndBarcodeKey key, String label){
+	public int increment(String key, String label){
 		SampleCounter sample = sets.get(key);
 		if(sample == null){
 			sample = new SampleCounter();
@@ -85,7 +85,7 @@ public class SampleSetsCounter {
 		return sample.increment(label);
 	}
 	
-	public int add(IndexAndBarcodeKey key, String label, int value){
+	public int add(String key, String label, int value){
 		SampleCounter sample = sets.get(key);
 		if(sample == null){
 			sample = new SampleCounter();
@@ -94,11 +94,11 @@ public class SampleSetsCounter {
 		return sample.add(label, value);
 	}
 	
-	public SampleCounter get(IndexAndBarcodeKey key){
+	public SampleCounter get(String key){
 		return sets.get(key);
 	}
 	
-	public int get(IndexAndBarcodeKey key, String label){
+	public int get(String key, String label){
 		SampleCounter s = sets.get(key);
 		int value = (s == null ? 0 : s.get(label));
 		return value;
@@ -118,9 +118,9 @@ public class SampleSetsCounter {
 	
 	public String toStringSorted(final String label){
 		// sort by descending count in this label
-		Stream<Map.Entry<IndexAndBarcodeKey, SampleCounter>> sortedByCount = sets.entrySet().stream().sorted(
-				new Comparator<Map.Entry<IndexAndBarcodeKey, SampleCounter>>(){
-					public int compare(Map.Entry<IndexAndBarcodeKey, SampleCounter> a, Map.Entry<IndexAndBarcodeKey, SampleCounter> b){
+		Stream<Map.Entry<String, SampleCounter>> sortedByCount = sets.entrySet().stream().sorted(
+				new Comparator<Map.Entry<String, SampleCounter>>(){
+					public int compare(Map.Entry<String, SampleCounter> a, Map.Entry<String, SampleCounter> b){
 						Integer a_count = a.getValue().get(label);
 						Integer b_count = b.getValue().get(label);
 						return a_count.compareTo(b_count);
@@ -131,7 +131,7 @@ public class SampleSetsCounter {
 		builder.append(raw);
 		builder.append('\n');
 		sortedByCount.forEachOrdered((pair)->{
-			IndexAndBarcodeKey key = pair.getKey();
+			String key = pair.getKey();
 			SampleCounter sample = pair.getValue();
 			builder.append(key.toString());
 			builder.append('\t');
@@ -162,12 +162,12 @@ public class SampleSetsCounter {
 		if(x instanceof SampleSetsCounter){
 			SampleSetsCounter other = (SampleSetsCounter) x;
 			// check in both directions
-			for(IndexAndBarcodeKey key : sets.keySet()){
+			for(String key : sets.keySet()){
 				if(!sets.get(key).equals(other.get(key))){
 					return false;
 				}
 			}
-			for(IndexAndBarcodeKey key : other.sets.keySet()){
+			for(String key : other.sets.keySet()){
 				if(!other.get(key).equals(sets.get(key))){
 					return false;
 				}

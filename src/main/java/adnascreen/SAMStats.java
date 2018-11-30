@@ -36,7 +36,7 @@ public class SAMStats {
 	private Map<String, Set<String> > referenceNamesToTargetClasses;
 	SampleSetsCounter counter;
 
-	public SAMStats(IndexAndBarcodeKey key, String filename, JSONObject targets, int minimumMappingQuality) throws IOException{
+	public SAMStats(String keyString, String filename, JSONObject targets, int minimumMappingQuality) throws IOException{
 		lengthHistogram = new Frequency();
 		counter = new SampleSetsCounter();
 		referenceNamesToTargetClasses = new HashMap<String, Set<String> >();
@@ -78,9 +78,9 @@ public class SAMStats {
 							Set<String> targetClassesToCount = referenceNamesToTargetClasses.get(referenceName);
 							if(targetClassesToCount != null){
 								for(String targetClass : targetClassesToCount){
-									counter.increment(key, targetClass);
+									counter.increment(keyString, targetClass);
 									String targetCoverageLabel = targetClass + "-coverageLength";
-									counter.add(key, targetCoverageLabel, readLength);
+									counter.add(keyString, targetCoverageLabel, readLength);
 								}
 							}
 							//System.out.println(referenceName + "\t" + targetClass);
@@ -120,8 +120,8 @@ public class SAMStats {
 		String histogramFilename = commandLine.getOptionValue('l');
 		int minimumMappingQuality = Integer.valueOf(commandLine.getOptionValue('q', "0"));
 		
-		IndexAndBarcodeKey key = ReadMarkDuplicatesStatistics.keyFromFilename(filename);
-		SAMStats stats = new SAMStats(key, filename, targets, minimumMappingQuality);
+		String keyString = ReadMarkDuplicatesStatistics.keyFromFilename(filename);
+		SAMStats stats = new SAMStats(keyString, filename, targets, minimumMappingQuality);
 		System.out.println(stats.toString());
 		
 		if(histogramFilename != null){

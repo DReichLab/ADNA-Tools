@@ -179,7 +179,7 @@ public class IndexAndBarcodeScreener {
 					keyFlattened = key.flatten();
 					int r1BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP5Label());
 					int r2BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP7Label());
-					sampleSetCounter.increment(keyFlattened, RAW);
+					sampleSetCounter.increment(keyFlattened.toString(), RAW);
 					merged = MergedRead.mergePairedSequences(r1, r2, key, 
 							r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlap, minMergedLength,
 							mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
@@ -196,7 +196,7 @@ public class IndexAndBarcodeScreener {
 					if(positiveOligo != null && merged != null) {
 						if(Read.alignmentAssessment(positiveOligo, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)
 							|| Read.alignmentAssessment(positiveOligoReverseComplement, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)) {
-							sampleSetCounter.increment(keyFlattened, OLIGO);
+							sampleSetCounter.increment(keyFlattened.toString(), OLIGO);
 						}
 					}
 				}
@@ -206,7 +206,7 @@ public class IndexAndBarcodeScreener {
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % numOutputFiles].println(merged.toString());
 					pairedReadOutputCount++;
-					sampleSetCounter.increment(keyFlattened, MERGED);
+					sampleSetCounter.increment(keyFlattened.toString(), MERGED);
 				}
 			}
 			// output map statistics
@@ -247,7 +247,7 @@ public class IndexAndBarcodeScreener {
 		else if (keyIndexOnly == null)
 			throw new IllegalArgumentException("No index pair");
 
-		SampleCounter countsForKeyIndexOnly = barcodeCountStatistics.get(keyIndexOnly);
+		SampleCounter countsForKeyIndexOnly = barcodeCountStatistics.get(keyIndexOnly.toString());
 		List<String> barcodePairStrings = countsForKeyIndexOnly.getLabelList();
 		// sort barcode pairs by count, tail is highest count
 		SortedMap<Integer, String> barcodePairsByCount = new TreeMap<Integer, String>();

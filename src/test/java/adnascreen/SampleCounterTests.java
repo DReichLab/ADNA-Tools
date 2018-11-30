@@ -88,8 +88,8 @@ public class SampleCounterTests {
 	private final String ALIGNED = "aligned";
 	@Test
 	public void basicSets(){
-		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_2_Q1_Q2");
-		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3_4_Q3_Q4");
+		String key1 = new IndexAndBarcodeKey("1_2_Q1_Q2").toString();
+		String key2 = new IndexAndBarcodeKey("3_4_Q3_Q4").toString();
 		
 		SampleSetsCounter set1 = new SampleSetsCounter();
 		SampleSetsCounter set2 = new SampleSetsCounter();
@@ -112,8 +112,8 @@ public class SampleCounterTests {
 	
 	@Test
 	public void combineSets(){
-		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_2_Q1_Q2");
-		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3_4_Q3_Q4");
+		String key1 = new IndexAndBarcodeKey("1_2_Q1_Q2").toString();
+		String key2 = new IndexAndBarcodeKey("3_4_Q3_Q4").toString();
 		
 		SampleSetsCounter set1 = new SampleSetsCounter();
 		SampleSetsCounter set2 = new SampleSetsCounter();
@@ -147,8 +147,8 @@ public class SampleCounterTests {
 	
 	@Test
 	public void setsToString(){
-		IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_2_Q1_Q2");
-		IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("3_4_Q3_Q4");
+		String key1 = new IndexAndBarcodeKey("1_2_Q1_Q2").toString();
+		String key2 = new IndexAndBarcodeKey("3_4_Q3_Q4").toString();
 		
 		SampleSetsCounter set1 = new SampleSetsCounter();
 		
@@ -168,9 +168,9 @@ public class SampleCounterTests {
 	
 	@Test
 	public void sortedToString(){
-			IndexAndBarcodeKey key1 = new IndexAndBarcodeKey("1_4_Q1_Q4");
-			IndexAndBarcodeKey key2 = new IndexAndBarcodeKey("2_5_Q2_Q5");
-			IndexAndBarcodeKey key3 = new IndexAndBarcodeKey("3_6_Q3_Q6");
+			String key1 = new IndexAndBarcodeKey("1_4_Q1_Q4").toString();
+			String key2 = new IndexAndBarcodeKey("2_5_Q2_Q5").toString();
+			String key3 = new IndexAndBarcodeKey("3_6_Q3_Q6").toString();
 			
 			SampleSetsCounter set1 = new SampleSetsCounter();
 			

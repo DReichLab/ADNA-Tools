@@ -35,8 +35,7 @@ public class AggregateStatistics {
 		}
 		// retrieve one value if both key and label are specified
 		if(keyString != null && label != null) {
-			IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-			System.out.println(statistics.get(key, label));
+			System.out.println(statistics.get(keyString, label));
 		}
 		else { // output combined statistics
 			System.out.println(statistics.toStringSorted(sortField));

@@ -78,9 +78,9 @@ public class BarcodeCount {
 					//int barcodeLength = barcodes.getBarcodeLength(p5);
 					IndexAndBarcodeKey keyIndexOnly = new IndexAndBarcodeKey(i5, i7, null, null);
 					if(p5 != null && p7 != null){
-						sampleSetCounter.increment(keyIndexOnly, p5 + IndexAndBarcodeKey.FIELD_SEPARATOR + p7);
+						sampleSetCounter.increment(keyIndexOnly.toString(), p5 + IndexAndBarcodeKey.FIELD_SEPARATOR + p7);
 					} else{
-						sampleSetCounter.increment(keyIndexOnly, WITHOUT_BARCODES);
+						sampleSetCounter.increment(keyIndexOnly.toString(), WITHOUT_BARCODES);
 					}
 				}
 			}

@@ -172,9 +172,9 @@ public class DemultiplexSAM {
 							IndexAndBarcodeKey keyFlattened = key.flatten();
 							// record statistics
 							// count of demultiplexed reads is for checking consistency
-							statistics.increment(keyFlattened, DEMULTIPLEXED);
+							statistics.increment(keyFlattened.toString(), DEMULTIPLEXED);
 							if(!record.getReadUnmappedFlag()){ // read is mapped
-								statistics.increment(keyFlattened, ALIGNED);
+								statistics.increment(keyFlattened.toString(), ALIGNED);
 							}
 
 							// write only to open files for top keys

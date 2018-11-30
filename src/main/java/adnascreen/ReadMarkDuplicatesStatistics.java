@@ -42,13 +42,12 @@ public class ReadMarkDuplicatesStatistics {
 		return -1;	
 	}
 	
-	public static IndexAndBarcodeKey keyFromFilename(String filenameFullPath){
+	public static String keyFromFilename(String filenameFullPath){
 		String [] path = filenameFullPath.split("/");
 		String filename = path[path.length - 1]; // filename is at the end of the path
 		String [] parts = filename.split("\\.");
-		String filenameOnly = parts[0]; // key is at beginning of filename
-		IndexAndBarcodeKey key = new IndexAndBarcodeKey(filenameOnly); 
-		return key;
+		String filenameOnly = parts[0]; // key is at beginning of filename 
+		return filenameOnly;
 	}
 
 	public static void main(String args[]) throws IOException, ParseException{
@@ -60,11 +59,11 @@ public class ReadMarkDuplicatesStatistics {
 		String label = commandLine.getOptionValue('l', DUPLICATES);
 		
 		String filenameFullPath = commandLine.getArgList().get(0);
-		IndexAndBarcodeKey key = keyFromFilename(filenameFullPath);
+		String keyString = keyFromFilename(filenameFullPath);
 		// read mark duplicates output
 		SampleSetsCounter stats = new SampleSetsCounter();
 		int numDuplicates = readMarkDuplicateStatistics(filenameFullPath);
-		stats.add(key, label, numDuplicates);
+		stats.add(keyString, label, numDuplicates);
 		System.out.println(stats.toString());
 	}
 }

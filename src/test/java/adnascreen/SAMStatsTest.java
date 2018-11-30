@@ -46,7 +46,7 @@ public class SAMStatsTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String filename = classLoader.getResource("target-test.sam").getPath();
 		try{
-			IndexAndBarcodeKey key = new IndexAndBarcodeKey("47_2_Q20_Q41");
+			String key = new IndexAndBarcodeKey("47_2_Q20_Q41").toString();
 			JSONObject targetJSON = new JSONObject(singleTargets);
 			SAMStats stats = new SAMStats(key, filename, targetJSON, 0);
 			
@@ -71,7 +71,7 @@ public class SAMStatsTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String filename = classLoader.getResource("target-test.sam").getPath();
 		try{
-			IndexAndBarcodeKey key = new IndexAndBarcodeKey("47_2_Q20_Q41");
+			String key = new IndexAndBarcodeKey("47_2_Q20_Q41").toString();
 			JSONObject targetJSON = new JSONObject(groupedTargets);
 			SAMStats stats = new SAMStats(key, filename, targetJSON, 0);
 			
@@ -93,7 +93,7 @@ public class SAMStatsTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String filename = classLoader.getResource("target-test.sam").getPath();
 		try{
-			IndexAndBarcodeKey key = new IndexAndBarcodeKey("47_2_Q20_Q41");
+			String key = new IndexAndBarcodeKey("47_2_Q20_Q41").toString();
 			JSONObject targetJSON = new JSONObject(groupedTargets);
 			SAMStats stats = new SAMStats(key, filename, targetJSON, 0);
 			
@@ -113,7 +113,7 @@ public class SAMStatsTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String filename = classLoader.getResource("target-test.sam").getPath();
 		try{
-			IndexAndBarcodeKey key = new IndexAndBarcodeKey("47_2_Q20_Q41");
+			String key = new IndexAndBarcodeKey("47_2_Q20_Q41").toString();
 			JSONObject targetJSON = new JSONObject(groupedTargets);
 			SAMStats stats = new SAMStats(key, filename, targetJSON, 0);
 			
@@ -134,7 +134,7 @@ public class SAMStatsTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String filename = classLoader.getResource("target-test.sam").getPath();
 		try{
-			IndexAndBarcodeKey key = new IndexAndBarcodeKey("47_2_Q20_Q41");
+			String key = new IndexAndBarcodeKey("47_2_Q20_Q41").toString();
 			JSONObject targetJSON = new JSONObject(singleTargets);
 			SAMStats stats = new SAMStats(key, filename, targetJSON, 30);
 			
