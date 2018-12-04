@@ -1,14 +1,18 @@
 package adnascreen;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -17,6 +21,9 @@ import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 
 public class FilterSAMTests {
+	@Rule
+	public TemporaryFolder testFolder = new TemporaryFolder();
+	
 	@Test
 	public void testHit() {
 		ClassLoader classLoader = getClass().getClassLoader();
@@ -168,6 +175,52 @@ public class FilterSAMTests {
 			
 			assertFalse(filter.filter(record, 0, 20));
 		}catch(IOException e) {
+			fail();
+		}
+	}
+	
+	@Test
+	public void testMainNoClipping() {		
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("filter_with_base_quality/filter.sam").getPath();
+		String bedFilename = classLoader.getResource("filter_with_base_quality/edge.bed").getPath();
+		try {
+			File outputFile = testFolder.newFile("clipped.sam");
+			String outputFilename = outputFile.getAbsolutePath();
+			String[] args = {"-i", filename, "-o", outputFilename, "-m", "0", "-q", "20", "-p", bedFilename};
+			FilterSAM.main(args);
+			
+			// verify there is one read, and which contains target
+			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(outputFilename)));
+			SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+			SAMRecordIterator i = reader.iterator();
+			SAMRecord record = i.next();
+			
+			assertEquals(1, record.getReadPositionAtReferencePosition(31445));
+		}
+		catch(Exception e) {
+			fail();
+		}
+	}
+
+	@Test
+	public void testMainWithClipping() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("filter_with_base_quality/filter.sam").getPath();
+		String bedFilename = classLoader.getResource("filter_with_base_quality/edge.bed").getPath();
+		try {
+			File outputFile = testFolder.newFile("clipped.sam");
+			String outputFilename = outputFile.getAbsolutePath();
+			String[] args = {"-i", filename, "-o", outputFilename, "-m", "0", "-q", "20", "-p", bedFilename, "-n", "2"};
+			FilterSAM.main(args);
+			
+			// verify there is are no reads
+			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(outputFilename)));
+			SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+			SAMRecordIterator i = reader.iterator();
+			assertFalse(i.hasNext());
+		}
+		catch(Exception e) {
 			fail();
 		}
 	}

@@ -508,9 +508,9 @@ public class SoftClipTest {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String filename = classLoader.getResource("multi_lib.sam").getPath();
 		try {
-			File clippledSam = testFolder.newFile("clipped.sam");
-			String clippedSamFilename = clippledSam.getAbsolutePath();
-			String [] args = {"-n", "2", "-i", filename, "-o", clippedSamFilename, "-x", "10", "-l", "Lib2", "-l", "Lib3", "-y", "-0", "-m", "Lib4"};
+			File clippedSam = testFolder.newFile("clipped.sam");
+			String clippedSamFilename = clippedSam.getAbsolutePath();
+			String [] args = {"-n", "2", "-i", filename, "-o", clippedSamFilename, "-x", "10", "-s", "Lib2", "-s", "Lib3", "-y", "-0", "-t", "Lib4"};
 			SoftClip.main(args);
 			
 			// check clipping in new file

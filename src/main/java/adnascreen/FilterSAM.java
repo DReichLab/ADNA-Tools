@@ -29,6 +29,8 @@ import htsjdk.samtools.util.OverlapDetector;
 import htsjdk.tribble.bed.BEDCodec;
 import htsjdk.tribble.bed.BEDFeature;
 
+// Filter for 1240k target set with minimum base and mapping qualities
+// Allow soft clipping in this pass
 public class FilterSAM {
 	OverlapDetector<BEDFeature> features;
 	
@@ -41,7 +43,8 @@ public class FilterSAM {
 		options.addRequiredOption("q", "minimum_base_quality", true, "minimum base quality");
 		options.addRequiredOption("p", "positions", true, "positions file in BED format");
 		options.addOption("b", "BAM", false, "Use bam files for output");
-		options.addOption("c", "soft_clip", true, "bases to soft clip from clip for deamination damage");
+		//options.addOption("c", "soft_clip", true, "bases to soft clip from clip for deamination damage");
+		SoftClip.addSoftClipCommandLineOptions(options);
 		
 		CommandLine commandLine	= parser.parse(options, args);
 		
@@ -51,7 +54,7 @@ public class FilterSAM {
 		String outputFilename = commandLine.getOptionValue('o');
 		String bedFilename = commandLine.getOptionValue('p');
 		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
-		int softClipBases = Integer.valueOf(commandLine.getOptionValue('c', "0"));
+		SoftClip softClipLengths = new SoftClip(commandLine);
 		
 		SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilename)));
 		try(
@@ -76,9 +79,10 @@ public class FilterSAM {
 				try{
 					record = i.next();
 					if(!record.getReadUnmappedFlag()) {
+						int softClipBases = softClipLengths.getClippingLength(record);
 						if(softClipBases > 0)
 							SoftClip.softClipBothEndsOfRead(record, softClipBases);
-						if (filter.filter(record, minimumMappingQuality, minimumBaseQuality)) {
+						if (SoftClip.isNonEmptyRead(record) && filter.filter(record, minimumMappingQuality, minimumBaseQuality)) {
 							output.addAlignment(record);
 						}
 					}				
@@ -114,6 +118,13 @@ public class FilterSAM {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param record
+	 * @param minimumMappingQuality
+	 * @param minimumBaseQuality
+	 * @return true if record meets quality requirements at a feature
+	 */
 	public boolean filter(SAMRecord record, int minimumMappingQuality, int minimumBaseQuality) {
 		if(record.getMappingQuality() >= minimumMappingQuality) {
 			Set<BEDFeature> overlappingFeatures = features.getOverlaps(record);

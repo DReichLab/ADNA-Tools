@@ -38,27 +38,19 @@ import htsjdk.samtools.util.CigarUtil;
  *
  */
 public class SoftClip {
-	public static void main(String [] args) throws ParseException, IOException{
-		CommandLineParser parser = new DefaultParser();
-		Options options = new Options();
-		options.addRequiredOption("n", "numBases", true, "Number of bases to clip from both start and end");
-		options.addRequiredOption("i", "input BAM", true, "Input BAM filename");
-		options.addRequiredOption("o", "output BAM", true, "Output BAM filename");
-		options.addOption("b", "BAM", false, "Use bam files for output");
-		// For mixed UDG bams, specify the number of bases for a second and third case 
-		options.addOption("x", "numBasesSpecial1", true, "Number of bases to clip from both start and end for reads in corresponding read groups, as exception to normal clipping");
-		options.addOption("l", "libraries1", true, "libraries to clip with numBasesSpecial1");
-		options.addOption("y", "numBasesSpecial2", true, "Number of bases to clip from both start and end for reads in corresponding read groups, as exception to normal clipping");
-		options.addOption("m", "libraries2", true, "libraries to clip with numBasesSpecial2");
-		CommandLine commandLine	= parser.parse(options, args);
+	private int defaultNumberOfBasesToClip;
+	private HashMap<String, Integer> clippingLengthByLibrary;
+	
+	/**
+	 * Parse command line options for clipping lengths based on library
+	 * This is designed for 3 options (UDG minus, half, plus)
+	 * Options in the command line need to match those in addSoftClipCommandLineOptions
+	 * @param commandLine
+	 */
+	public SoftClip(CommandLine commandLine) {
+		defaultNumberOfBasesToClip = Integer.valueOf(commandLine.getOptionValue('n', "0"));
+		clippingLengthByLibrary = new HashMap<String, Integer>();
 		
-		int defaultNumberOfBasesToClip = Integer.valueOf(commandLine.getOptionValue('n'));
-		String inputFilename = commandLine.getOptionValue('i');
-		String outputFilename = commandLine.getOptionValue('o');
-		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
-		
-		// clipping for command line specified libraries to handle separate UDG treatments 
-		HashMap<String, Integer> clippingLengthByLibrary = new HashMap<String, Integer>();
 		int numberOfBasesToClipSpecial1 = Integer.valueOf(commandLine.getOptionValue('x', "0"));
 		String[] specialClippingLibrariesArray1 = commandLine.getOptionValues("libraries1");
 		if (specialClippingLibrariesArray1 != null) {
@@ -73,6 +65,56 @@ public class SoftClip {
 				clippingLengthByLibrary.put(library, numberOfBasesToClipSpecial2);
 			}
 		}
+	}
+	
+	/**
+	 * 
+	 * @param record
+	 * @return number of bases to clip on both ends based on library
+	 */
+	public int getClippingLength(SAMRecord record) {
+		int numberOfBasesToClip = defaultNumberOfBasesToClip;
+		// clipping length depends on library
+		SAMReadGroupRecord readGroup = record.getReadGroup();
+		if(readGroup != null) {
+			String library = readGroup.getLibrary();
+			if(library != null) {
+				numberOfBasesToClip = clippingLengthByLibrary.getOrDefault(library, defaultNumberOfBasesToClip);
+			}
+		}
+		return numberOfBasesToClip;
+	}
+	
+	public static void addSoftClipCommandLineOptions(Options options) {
+		options.addOption("n", "numBases", true, "Number of bases to clip from both start and end");
+		// For mixed UDG bams, specify the number of bases for a second and third case 
+		options.addOption("x", "numBasesSpecial1", true, "Number of bases to clip from both start and end for reads in corresponding read groups, as exception to normal clipping");
+		options.addOption("s", "libraries1", true, "libraries to clip with numBasesSpecial1");
+		options.addOption("y", "numBasesSpecial2", true, "Number of bases to clip from both start and end for reads in corresponding read groups, as exception to normal clipping");
+		options.addOption("t", "libraries2", true, "libraries to clip with numBasesSpecial2");
+	}
+	
+	// non-empty reads have at least one (mis)match
+	public static boolean isNonEmptyRead(SAMRecord record) {
+		Cigar cigar = record.getCigar();
+		return cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH);
+	}
+	
+	public static void main(String [] args) throws ParseException, IOException{
+		CommandLineParser parser = new DefaultParser();
+		Options options = new Options();
+		options.addRequiredOption("i", "input BAM", true, "Input BAM filename");
+		options.addRequiredOption("o", "output BAM", true, "Output BAM filename");
+		options.addOption("b", "BAM", false, "Use bam files for output");
+		addSoftClipCommandLineOptions(options);
+		CommandLine commandLine	= parser.parse(options, args);
+		
+		String inputFilename = commandLine.getOptionValue('i');
+		String outputFilename = commandLine.getOptionValue('o');
+		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
+		
+		// clipping for command line specified libraries to handle separate UDG treatments 
+		SoftClip softClipLengths = new SoftClip(commandLine);
 		
 		SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilename)));
 		try(
@@ -94,23 +136,11 @@ public class SoftClip {
 				// iterate through alignments
 				try{
 					SAMRecord record = i.next();
-					int numberOfBasesToClip = defaultNumberOfBasesToClip;
-					
-					// clipping length depends on library
-					SAMReadGroupRecord readGroup = record.getReadGroup();
-					if(readGroup != null) {
-						String library = readGroup.getLibrary();
-						if(library != null) {
-							numberOfBasesToClip = clippingLengthByLibrary.getOrDefault(library, defaultNumberOfBasesToClip);
-						}
-					}
-					
+					int numberOfBasesToClip = softClipLengths.getClippingLength(record);				
 					softClipBothEndsOfRead(record, numberOfBasesToClip);
 					
-					// very short reads may be entirely clipped
-					// remove these from the data set, and keep only reads with at least one (mis)match
-					Cigar cigar = record.getCigar();
-					if(cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH)) {
+					// very short reads may be entirely clipped, remove these from the data set
+					if(isNonEmptyRead(record)) {
 						output.addAlignment(record);
 						
 						// diagnostic prints for validation failures
