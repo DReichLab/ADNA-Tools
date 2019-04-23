@@ -64,6 +64,7 @@ public class IndexAndBarcodeScreener {
 		options.addOption("t", "barcode-threshold", true, "Threshold for count to use barcode length over no barcodes");
 		options.addOption("x", "index-barcode-keys", true, "Index-barcode keys for setting explicit barcode lengths");
 		options.addOption("z", "positive-oligo", true, "Provide count for reads matching provided positive oligo sequence");
+		options.addOption("y", "reverse-complement-i5", false, "Whether i5 index should be reverse complemented (NextSeq is not)");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -88,6 +89,8 @@ public class IndexAndBarcodeScreener {
 		} catch(IOException e){
 			System.exit(1);
 		}
+		
+		final boolean reverseComplementI5 = commandLine.hasOption('y'); 
 		
 		// optional specification of barcode lengths from index-barcode key file
 		Map<IndexAndBarcodeKey, Integer> barcodeLengthsFromSampleSheet = null;
@@ -147,6 +150,10 @@ public class IndexAndBarcodeScreener {
 				Read r2 = new Read(r2Reader.next());
 				Read i1 = new Read(i1Reader.next());
 				Read i2 = new Read(i2Reader.next());
+				
+				if(reverseComplementI5) {
+					i2 = i2.reverseComplement();
+				}
 				
 				// Lookup by index pair whether barcodes are used
 				IndexAndBarcodeKey keyIndexOnly = MergedRead.findExperimentKey(r1, r2, i1, i2, 

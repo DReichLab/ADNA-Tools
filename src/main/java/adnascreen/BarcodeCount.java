@@ -29,6 +29,7 @@ public class BarcodeCount {
 		options.addRequiredOption("b", "barcodes", true, 
 				"File containing one valid barcodes sets per line with ':'-delimited elements");
 		options.addOption("h", "hamming-distance", true, "Max hamming distance for index or barcode match");
+		options.addOption("y", "reverse-complement-i5", false, "Whether i5 index should be reverse complemented (NextSeq is not)");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		BarcodeMatcher i5Indices = null, i7Indices = null;
@@ -36,6 +37,7 @@ public class BarcodeCount {
 		// We keep statistics for each 4-tuple of indices and barcodes
 		SampleSetsCounter sampleSetCounter = new SampleSetsCounter();
 		final int maxHammingDistance = Integer.valueOf(commandLine.getOptionValue('h', "1"));
+		final boolean reverseComplementI5 = commandLine.hasOption('y'); 
 		
 		try{
 			i5Indices = new BarcodeMatcher(commandLine.getOptionValue("i5-indices"), maxHammingDistance);
@@ -63,6 +65,10 @@ public class BarcodeCount {
 				Read r2 = new Read(r2Reader.next());
 				Read i1 = new Read(i1Reader.next());
 				Read i2 = new Read(i2Reader.next());
+				
+				if(reverseComplementI5) {
+					i2 = i2.reverseComplement();
+				}
 				
 				IndexAndBarcodeKey key = MergedRead.findExperimentKey(r1, r2, i1, i2, 
 						i5Indices, i7Indices, barcodes, -1);
