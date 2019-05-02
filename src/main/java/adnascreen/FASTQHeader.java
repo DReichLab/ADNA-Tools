@@ -41,7 +41,14 @@ public class FASTQHeader {
 		String[] right = initialSplit[1].split(":");
 		
 		instrument = left[0];
-		runNumber = Integer.valueOf(left[1]);
+		try {
+			runNumber = Integer.valueOf(left[1]);
+		}
+		catch(NumberFormatException e) {
+			// Broad FASTQ have been seen to violate standard with run numbers such as: 'HY352CCXY190421'
+			// return an integer anyway that should be identifiable as a bad run number
+			runNumber = 0;
+		}
 		flowcellID = left[2];
 		lane = Integer.valueOf(left[3]);
 		tile = Integer.valueOf(left[4]);
@@ -63,7 +70,7 @@ public class FASTQHeader {
 			throw new IllegalArgumentException("Unexpected value of isFiltered in FASTQ header " + isFilteredString);		
 		}
 		controlNumber = Integer.valueOf(right[2]);
-		index = right[3];
+		index = (right.length >= 4) ? right[3] : "";
 	}
 	
 	@Override

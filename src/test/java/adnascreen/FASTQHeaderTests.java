@@ -20,6 +20,23 @@ public class FASTQHeaderTests {
 	}
 	
 	@Test
+	public void fields(){
+		String header = "@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0";
+		FASTQHeader h1 = new FASTQHeader(header);
+		assertEquals("NS500217", h1.getInstrument());
+		assertEquals(348, h1.getRunNumber());
+		assertEquals("HTW2FBGXY", h1.getFlowcellID());
+		assertEquals(1, h1.getLane());
+		assertEquals(11101, h1.getTile());
+		assertEquals(22352, h1.getX());
+		assertEquals(1064, h1.getY());
+		assertEquals(1, h1.getRead());
+		assertEquals(false, h1.isFiltered());
+		assertEquals(0, h1.getControlNumber());
+		assertEquals("0", h1.getIndex());
+	}
+	
+	@Test
 	public void to_string(){
 		String header = "@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0";
 		FASTQHeader h1 = new FASTQHeader(header);
@@ -66,5 +83,41 @@ public class FASTQHeaderTests {
 		String expected = "TAATTCG+GAAATAA";
 		String s = h1.getIndex();
 		assertEquals(expected, s);
+	}
+	
+	// Other tests use data from NextSeq runs. This test uses data from a Broad HiSeq X10.
+	@Test
+	public void badBroadRunNumber() {
+		String header = "@E00151:HY352CCXY190421:HY352CCXY:1:1101:10003:10029 1:N:0:";
+		FASTQHeader h1 = new FASTQHeader(header);
+		
+		assertEquals("E00151", h1.getInstrument());
+		assertEquals(0, h1.getRunNumber()); // bad run numbers are converted to 0
+		assertEquals("HY352CCXY", h1.getFlowcellID());
+		assertEquals(1, h1.getLane());
+		assertEquals(1101, h1.getTile());
+		assertEquals(10003, h1.getX());
+		assertEquals(10029, h1.getY());
+		assertEquals(1, h1.getRead());
+		assertEquals(false, h1.isFiltered());
+		assertEquals(0, h1.getControlNumber());
+		assertEquals("", h1.getIndex());
+	}
+	
+	public void badBroadRunNumber2() {
+		String header = "@E00151:HY352CCXY190421:HY352CCXY:1:1101:10003:10029 2:N:0:";
+		FASTQHeader h1 = new FASTQHeader(header);
+		
+		assertEquals("E00151", h1.getInstrument());
+		assertEquals(0, h1.getRunNumber()); // bad run numbers are converted to 0
+		assertEquals("HY352CCXY", h1.getFlowcellID());
+		assertEquals(1, h1.getLane());
+		assertEquals(1101, h1.getTile());
+		assertEquals(10003, h1.getX());
+		assertEquals(10029, h1.getY());
+		assertEquals(2, h1.getRead());
+		assertEquals(false, h1.isFiltered());
+		assertEquals(0, h1.getControlNumber());
+		assertEquals("", h1.getIndex());
 	}
 }
