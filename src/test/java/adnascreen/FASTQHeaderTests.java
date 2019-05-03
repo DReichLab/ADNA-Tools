@@ -85,7 +85,7 @@ public class FASTQHeaderTests {
 		assertEquals(expected, s);
 	}
 	
-	// Other tests use data from NextSeq runs. This test uses data from a Broad HiSeq X10.
+	// Other tests use data from NextSeq runs. Following tests use data from a Broad HiSeq X10.
 	@Test
 	public void badBroadRunNumber() {
 		String header = "@E00151:HY352CCXY190421:HY352CCXY:1:1101:10003:10029 1:N:0:";
@@ -116,6 +116,23 @@ public class FASTQHeaderTests {
 		assertEquals(10003, h1.getX());
 		assertEquals(10029, h1.getY());
 		assertEquals(2, h1.getRead());
+		assertEquals(false, h1.isFiltered());
+		assertEquals(0, h1.getControlNumber());
+		assertEquals("", h1.getIndex());
+	}
+	
+	public void badBroadReadNumber() {
+		String header = "@E00151:HY352CCXY190421:HY352CCXY:1:1101:10003:10029 :N:0:";
+		FASTQHeader h1 = new FASTQHeader(header);
+		
+		assertEquals("E00151", h1.getInstrument());
+		assertEquals(0, h1.getRunNumber()); // bad run numbers are converted to 0
+		assertEquals("HY352CCXY", h1.getFlowcellID());
+		assertEquals(1, h1.getLane());
+		assertEquals(1101, h1.getTile());
+		assertEquals(10003, h1.getX());
+		assertEquals(10029, h1.getY());
+		assertEquals(0, h1.getRead()); // bad read numbers are converted to 0
 		assertEquals(false, h1.isFiltered());
 		assertEquals(0, h1.getControlNumber());
 		assertEquals("", h1.getIndex());

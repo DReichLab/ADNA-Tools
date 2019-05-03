@@ -57,7 +57,13 @@ public class FASTQHeader {
 		if(left.length > 7)
 			UMI = left[7];
 		
-		read = Integer.valueOf(right[0]);
+		try {
+			read = Integer.valueOf(right[0]);
+		}
+		catch(NumberFormatException e) {
+			// Broad FASTQ have missing read numbers for index reads
+			read = 0;
+		}
 		String isFilteredString = right[1];
 		switch(isFilteredString){
 		case "Y":
