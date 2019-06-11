@@ -18,4 +18,20 @@ public class ReadMarkDuplicatesStatisticsTest {
 			fail();
 		}
 	}
+	
+	@Test
+	public void keyParseFromFilename1() {
+		String filename = "/test/abc/GTCGCAG_TTGGATC_CGCTGAG-GTGATCT-TATCAGA-ACAGCTC_AGCATCA-CTGCAGC-GATGCTG-TCATGAT.bam.stats";
+		String expectedKey = "GTCGCAG_TTGGATC_CGCTGAG-GTGATCT-TATCAGA-ACAGCTC_AGCATCA-CTGCAGC-GATGCTG-TCATGAT";
+		String result = ReadMarkDuplicatesStatistics.keyFromFilename(filename);
+		assertEquals(expectedKey, result);
+	}
+	
+	@Test
+	public void keyParseFromFilename2() {
+		String filename = "/test/dir/S6913.E1.L6.bam.stats";
+		String expectedKey = "S6913.E1.L6";
+		String result = ReadMarkDuplicatesStatistics.keyFromFilename(filename);
+		assertEquals(expectedKey, result);
+	}
 }

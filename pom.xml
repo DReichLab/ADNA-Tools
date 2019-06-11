@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.harvard.hms.reichlab</groupId>
   <artifactId>adnascreen</artifactId>
-  <version>1.6.1-SNAPSHOT</version>
+  <version>1.6.2-SNAPSHOT</version>
   <name>Ancient DNA Screening</name>
   <properties>
    <maven.compiler.source>1.8</maven.compiler.source>

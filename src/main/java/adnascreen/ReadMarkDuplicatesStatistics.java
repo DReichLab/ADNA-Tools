@@ -45,8 +45,15 @@ public class ReadMarkDuplicatesStatistics {
 	public static String keyFromFilename(String filenameFullPath){
 		String [] path = filenameFullPath.split("/");
 		String filename = path[path.length - 1]; // filename is at the end of the path
-		String [] parts = filename.split("\\.");
-		String filenameOnly = parts[0]; // key is at beginning of filename 
+		
+		// remove extenions after .bam
+		String filenameOnly;
+		int bamPosition = filename.indexOf(".bam");
+		if(bamPosition > 0) {
+			filenameOnly = filename.substring(0, bamPosition);
+		}
+		else
+			filenameOnly = filename;
 		return filenameOnly;
 	}
 
