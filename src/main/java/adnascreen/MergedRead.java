@@ -77,7 +77,22 @@ public class MergedRead extends Read{
 		// match indices and barcodes against the known sets to see whether we should process this read pair
 		String i5IndexLabel = i5Indices.find(i5IndexRaw);
 		String i7IndexLabel = i7Indices.find(i7IndexRaw);
-
+		
+		return findExperimentKey(r1, r2, i5IndexLabel, i7IndexLabel, barcodes, singleBarcodeLength);
+	}
+	
+	/**
+	 * Find the key of 4-tuple of indices and barcodes for this paired read with pre-identified index labels.   
+	 * {@link MergedRead#findExperimentKey(Read, Read, Read, Read, BarcodeMatcher, BarcodeMatcher, BarcodeMatcher, int)}
+	 * @param i5IndexLabel pre-identified i5 label to include in output key
+	 * @param i7IndexLabel pre-identified i7 label to include in output key
+	 */
+	public static IndexAndBarcodeKey findExperimentKey(Read r1, Read r2, String i5IndexLabel, String i7IndexLabel, 
+			BarcodeMatcher barcodes, int singleBarcodeLength){
+		// check for metadata consistency
+		if(!r1.getFASTQHeader().equalsExceptRead(r2.getFASTQHeader()))
+			throw new IllegalArgumentException("FASTQ metadata mismatch");
+		
 		if(i5IndexLabel != null && i7IndexLabel != null){
 			if(barcodes != null){
 				List<Integer> barcodeLengths;
