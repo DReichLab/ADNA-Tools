@@ -6,18 +6,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableLong;
 
 /**
  * SampleCounter is basically a Map with integer counts for values
  *
  */
 public class SampleCounter {
-	private Map<String, MutableInt> counters;
+	private Map<String, MutableLong> counters;
 	private List<String> orderedLabels; // labels in order added to print in a specific order
 	
 	public SampleCounter(){
-		counters = new HashMap<String, MutableInt>();
+		counters = new HashMap<String, MutableLong>();
 		orderedLabels = new LinkedList<String>();
 	}
 	
@@ -25,8 +25,8 @@ public class SampleCounter {
 	public SampleCounter(SampleCounter other){
 		this();
 		for(String label : other.orderedLabels){
-			MutableInt value = new MutableInt(other.get(label));
-			add(label, value.intValue());
+			MutableLong value = new MutableLong(other.get(label));
+			add(label, value.getValue());
 		}
 	}
 	
@@ -35,35 +35,35 @@ public class SampleCounter {
 		String [] labelsAndValues = serialized.split("\t");
 		for(int n = 0; n < labelsAndValues.length - 1; n += 2){
 			String label = labelsAndValues[n];
-			int value = Integer.valueOf(labelsAndValues[n+1]);
+			long value = Long.valueOf(labelsAndValues[n+1]);
 			add(label, value);
 		}
 	}
 	
-	public int increment(String label){
-		MutableInt count = counters.get(label);
+	public long increment(String label){
+		MutableLong count = counters.get(label);
 		if(count == null){
-			count = new MutableInt(0);
+			count = new MutableLong(0);
 			counters.put(label, count);
 			orderedLabels.add(label);
 		}
 		return count.incrementAndGet();
 	}
 	
-	public int add(String label, int value){
-		MutableInt count = counters.get(label);
+	public long add(String label, long value){
+		MutableLong count = counters.get(label);
 		if(count == null){
-			count = new MutableInt(0);
+			count = new MutableLong(0);
 			counters.put(label, count);
 			orderedLabels.add(label);
 		}
 		return count.addAndGet(value);
 	}
 	
-	public int get(String label){
-		MutableInt count = counters.get(label);
+	public long get(String label){
+		MutableLong count = counters.get(label);
 		if(count != null){
-			return count.intValue();
+			return count.getValue();
 		}
 		return 0;
 	}
@@ -83,7 +83,7 @@ public class SampleCounter {
 	 */
 	public void combine(SampleCounter other){
 		for(String label : other.orderedLabels){
-			int addend = other.get(label);
+			long addend = other.get(label);
 			add(label, addend);
 		}
 	}
@@ -107,15 +107,15 @@ public class SampleCounter {
 			SampleCounter other = (SampleCounter) x;
 			// check for set inclusion both ways
 			for(String label : other.orderedLabels){
-				MutableInt otherValue = other.counters.get(label);
-				MutableInt thisValue = counters.get(label);
+				MutableLong otherValue = other.counters.get(label);
+				MutableLong thisValue = counters.get(label);
 				if(!otherValue.equals(thisValue)){
 					return false;
 				}
 			}
 			for(String label : orderedLabels){
-				MutableInt otherValue = other.counters.get(label);
-				MutableInt thisValue = counters.get(label);
+				MutableLong otherValue = other.counters.get(label);
+				MutableLong thisValue = counters.get(label);
 				if(!thisValue.equals(otherValue)){
 					return false;
 				}

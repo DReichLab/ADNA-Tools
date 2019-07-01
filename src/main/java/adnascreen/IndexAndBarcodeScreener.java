@@ -357,13 +357,13 @@ public class IndexAndBarcodeScreener {
 		SampleCounter countsForKeyIndexOnly = barcodeCountStatistics.get(keyIndexOnly.toString());
 		List<String> barcodePairStrings = countsForKeyIndexOnly.getLabelList();
 		// sort barcode pairs by count, tail is highest count
-		SortedMap<Integer, String> barcodePairsByCount = new TreeMap<Integer, String>();
+		SortedMap<Long, String> barcodePairsByCount = new TreeMap<Long, String>();
 		for(String barcodePairString : barcodePairStrings){
 			barcodePairsByCount.put(countsForKeyIndexOnly.get(barcodePairString), barcodePairString);
 		}
 		
 		int barcodeLength = -1;
-		Integer max;
+		Long max;
 		max = barcodePairsByCount.lastKey();
 		String maxPairLabel = barcodePairsByCount.remove(max);
 		barcodeLength = barcodes.getBarcodePairLength(maxPairLabel);
@@ -371,7 +371,7 @@ public class IndexAndBarcodeScreener {
 		if(barcodeLength == 0 && barcodePairsByCount.size() > 0){
 			// if a minority of barcodes pass the barcode check, we can falsely assume there are no barcodes
 			// check whether a substantial fraction of barcodes are for a single barcode pair
-			Integer second = barcodePairsByCount.lastKey();
+			Long second = barcodePairsByCount.lastKey();
 			if(second > threshold * max){
 				String secondPairLabel = barcodePairsByCount.remove(second);
 				int secondLength = barcodes.getBarcodePairLength(secondPairLabel);

@@ -85,7 +85,7 @@ public class DemultiplexSAM {
 		String statisticsFilename = commandLine.getOptionValue('s');
 		File statisticsFile = new File(statisticsFilename);
 		try(BufferedReader reader = new BufferedReader(new FileReader(statisticsFile))){
-			Integer.valueOf(reader.readLine());
+			Long.valueOf(reader.readLine());
 			for(int n = 0; n < numTopSamples; n++){
 				String entryLine = reader.readLine();
 				if(entryLine != null) {
@@ -99,7 +99,7 @@ public class DemultiplexSAM {
 					}
 
 					if(rawIndex < fields.length && fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
-						int rawCount = Integer.valueOf(fields[rawIndex + 1]);
+						long rawCount = Long.valueOf(fields[rawIndex + 1]);
 						if(rawCount >= minimumReads){
 							IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
 							outputFilesAll.add(key);

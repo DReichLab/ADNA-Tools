@@ -83,6 +83,31 @@ public class SampleCounterTests {
 		assertEquals("aligned", labels.get(2));
 	}
 	
+	@Test
+	// Test that we can handle long-sized values
+	public void longCount() {
+		SampleCounter s = new SampleCounter();
+		long expected = 1L + (long) Integer.MAX_VALUE;
+		
+		String TEST = "long_test";
+		s.add(TEST, Integer.MAX_VALUE);
+		s.increment(TEST);
+		
+		assertEquals(expected, s.get(TEST));
+	}
+	
+	@Test
+	// test copy constructor with long-sized value
+	public void copy() {
+		SampleCounter s = new SampleCounter();
+		long expected = 1L + (long) Integer.MAX_VALUE;
+		String TEST = "long_test";
+		s.add(TEST, expected);
+		
+		SampleCounter s2 = new SampleCounter(s);
+		assertEquals(s.get(TEST), s2.get(TEST));
+	}
+	
 	private final String RAW = "raw";
 	private final String MERGED = "merged";
 	private final String ALIGNED = "aligned";

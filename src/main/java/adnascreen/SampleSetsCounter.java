@@ -62,7 +62,7 @@ public class SampleSetsCounter {
 		// followed by pairs of labels with counts
 		for(int i = 1; i + 1 < fields.length; i += 2){
 			String label = fields[i];
-			int count = Integer.valueOf(fields[i + 1]);
+			long count = Long.valueOf(fields[i + 1]);
 			this.add(key, label, count);
 		}
 	}
@@ -76,7 +76,7 @@ public class SampleSetsCounter {
 		return raw;
 	}
 	
-	public int increment(String key, String label){
+	public long increment(String key, String label){
 		SampleCounter sample = sets.get(key);
 		if(sample == null){
 			sample = new SampleCounter();
@@ -85,7 +85,7 @@ public class SampleSetsCounter {
 		return sample.increment(label);
 	}
 	
-	public int add(String key, String label, int value){
+	public long add(String key, String label, long value){
 		SampleCounter sample = sets.get(key);
 		if(sample == null){
 			sample = new SampleCounter();
@@ -98,9 +98,9 @@ public class SampleSetsCounter {
 		return sets.get(key);
 	}
 	
-	public int get(String key, String label){
+	public long get(String key, String label){
 		SampleCounter s = sets.get(key);
-		int value = (s == null ? 0 : s.get(label));
+		long value = (s == null ? 0 : s.get(label));
 		return value;
 	}
 	
@@ -121,8 +121,8 @@ public class SampleSetsCounter {
 		Stream<Map.Entry<String, SampleCounter>> sortedByCount = sets.entrySet().stream().sorted(
 				new Comparator<Map.Entry<String, SampleCounter>>(){
 					public int compare(Map.Entry<String, SampleCounter> a, Map.Entry<String, SampleCounter> b){
-						Integer a_count = a.getValue().get(label);
-						Integer b_count = b.getValue().get(label);
+						Long a_count = a.getValue().get(label);
+						Long b_count = b.getValue().get(label);
 						return a_count.compareTo(b_count);
 					}
 				}.reversed());
