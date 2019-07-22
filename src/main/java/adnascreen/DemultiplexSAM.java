@@ -34,6 +34,7 @@ import htsjdk.samtools.SamReaderFactory;
 public class DemultiplexSAM {
 	public static final String ALIGNED = "aligned";
 	public static final String DEMULTIPLEXED = "demultiplexed";
+	public static final String duplicatesSAMTag = "XD";
 	
 	public static void main(String [] args) throws IOException, ParseException {
 		CommandLineParser parser = new DefaultParser();
@@ -55,7 +56,6 @@ public class DemultiplexSAM {
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
 		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
 		
-		String duplicatesSAMTag = "XD";
 		Queue<IndexAndBarcodeKey> outputFilesAll = new LinkedList<IndexAndBarcodeKey>();
 		
 		SAMSequenceDictionary alignmentReference = null;

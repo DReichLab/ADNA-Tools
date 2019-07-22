@@ -62,6 +62,9 @@ public class Driver {
 		case "readgrouprewrite":
 			ReadGroupRewrite.main(remainingArgs);
 			break;
+		case "duplicatestagrewrite":
+			DuplicatesTagRewrite.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}
