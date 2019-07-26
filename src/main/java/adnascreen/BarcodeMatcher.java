@@ -58,11 +58,13 @@ public class BarcodeMatcher {
 				){
 			String line;
 			while((line = reader.readLine()) != null){
-				// each line is a barcode set string, with whitespace and label
-				String [] elements = line.trim().split("\\s+");
-				String barcodeSetString = elements[0];
-				String barcodeLabel = elements[1];
-				addReferenceSet(barcodeSetString, barcodeLabel, false);
+				if(line.length() > 0) {
+					// each line is a barcode set string, with whitespace and label
+					String [] elements = line.trim().split("\\s+");
+					String barcodeSetString = elements[0];
+					String barcodeLabel = elements[1];
+					addReferenceSet(barcodeSetString, barcodeLabel, false);
+				}
 			}
 			cache.clear();
 			seedCache();

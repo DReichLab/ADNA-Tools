@@ -346,6 +346,21 @@ public class BarcodeMatcherTests {
 		barcodeMatcher.setMaxHammingDistance(-1);
 	}
 	
+	@Test
+	public void emptyFile() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("empty").getPath();
+		
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		try {
+			barcodeMatcher.loadFile(filename);
+			assertEquals(0, barcodeMatcher.getBarcodeLengths().size());
+		}
+		catch(Exception e) {
+			fail();
+		}
+	}
+	
 	private DNASequence dnaStringFromInt(int n, int length){
 		final char[] BASES = {'A', 'C', 'G', 'T'}; 
 		StringBuilder b = new StringBuilder();
