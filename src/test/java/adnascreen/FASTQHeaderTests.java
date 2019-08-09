@@ -104,6 +104,7 @@ public class FASTQHeaderTests {
 		assertEquals("", h1.getIndex());
 	}
 	
+	@Test
 	public void badBroadRunNumber2() {
 		String header = "@E00151:HY352CCXY190421:HY352CCXY:1:1101:10003:10029 2:N:0:";
 		FASTQHeader h1 = new FASTQHeader(header);
@@ -121,6 +122,7 @@ public class FASTQHeaderTests {
 		assertEquals("", h1.getIndex());
 	}
 	
+	@Test
 	public void badBroadReadNumber() {
 		String header = "@E00151:HY352CCXY190421:HY352CCXY:1:1101:10003:10029 :N:0:";
 		FASTQHeader h1 = new FASTQHeader(header);
@@ -133,6 +135,26 @@ public class FASTQHeaderTests {
 		assertEquals(10003, h1.getX());
 		assertEquals(10029, h1.getY());
 		assertEquals(0, h1.getRead()); // bad read numbers are converted to 0
+		assertEquals(false, h1.isFiltered());
+		assertEquals(0, h1.getControlNumber());
+		assertEquals("", h1.getIndex());
+	}
+	
+	@Test
+	// The Picard SamToFastq program also produces non-standard fastq headers
+	public void broad_samtofastq() {
+		String header = "@H2NMFCCXY170825:1:1101:10003:10029/2";
+		FASTQHeader h1 = new FASTQHeader(header);
+		
+		assertEquals("", h1.getInstrument());
+		assertEquals(0, h1.getRunNumber());
+		assertEquals("H2NMFCCXY", h1.getFlowcellID());
+		assertEquals(1, h1.getLane());
+		assertEquals(1101, h1.getTile());
+		assertEquals(10003, h1.getX());
+		assertEquals(10029, h1.getY());
+		
+		assertEquals(2, h1.getRead());
 		assertEquals(false, h1.isFiltered());
 		assertEquals(0, h1.getControlNumber());
 		assertEquals("", h1.getIndex());

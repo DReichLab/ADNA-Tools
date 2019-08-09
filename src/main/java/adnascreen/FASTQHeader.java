@@ -34,7 +34,21 @@ public class FASTQHeader {
 			noLeading = line;
 		}
 		
-		String [] initialSplit = noLeading.split(" ");
+		try {
+			standardHeader(noLeading);
+		}
+		catch(Exception e1) {
+			try {
+				samToFastqHeader(noLeading);
+			}
+			catch(Exception e2) {
+				throw e1;
+			}
+		}
+	}
+		
+	protected void standardHeader(String line) {
+		String [] initialSplit = line.split(" ");
 		if(initialSplit.length > 2)
 			throw new IllegalArgumentException("Unexpected spaces in FASTQ header");
 		String[] left = initialSplit[0].split(":");
@@ -77,6 +91,21 @@ public class FASTQHeader {
 		}
 		controlNumber = Integer.valueOf(right[2]);
 		index = (right.length >= 4) ? right[3] : "";
+	}
+
+	protected void samToFastqHeader(String line) {
+		String [] parts = line.split("/");
+		read = Integer.valueOf(parts[1]);
+		String [] fields = parts[0].split(":");
+		instrument = "";
+		flowcellID = fields[0].substring(0, fields[0].length() - 6);
+		lane = Integer.valueOf(fields[1]);
+		tile = Integer.valueOf(fields[2]);
+		x = Integer.valueOf(fields[3]);
+		y = Integer.valueOf(fields[4]);
+		isFiltered = false;
+		controlNumber = 0;
+		index = "";
 	}
 	
 	@Override
