@@ -27,6 +27,22 @@ public class BarcodeMatcherTests {
 	}
 	
 	@Test
+	public void copyConstructor(){
+		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
+		String label = "Q1";
+		String expectedResult = "Q1" + BarcodeMatcher.INDEX_DELIMITER + "1";
+		DNASequence query = new DNASequence("ATCGATT");
+
+		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
+		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		
+		BarcodeMatcher copy = new BarcodeMatcher(barcodeMatcher);
+		String result = copy.find(query);
+		assertEquals(expectedResult, result);
+		assertEquals(query, copy.getBarcode(result));
+	}
+	
+	@Test
 	public void noMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
 		String label = "Q1";

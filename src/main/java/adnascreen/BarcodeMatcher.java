@@ -23,17 +23,22 @@ import java.util.TreeSet;
  *
  */
 public class BarcodeMatcher {
+	private Map<String, String> originalBarcodeToLabel; // needed for copy constructor, keep version of barcode set string
+	
 	private Map<DNASequence, String> referenceBarcodeToLabel;
-	private Map<DNASequence, Optional<String> >cache;
 	private Map<String, Integer> labelToBarcodeLength;
 	private SortedSet<Integer> barcodeLengthsSet;
+	
+	private Map<DNASequence, Optional<String> >cache;
 	private List<Integer> barcodeLengths;
+	
 	private int maxHammingDistance;
 	public final static char INDEX_DELIMITER = '.';
 	public final static char BARCODE_DELIMITER = ':';
 	private Map<String, DNASequence> labelToBarcode;
 	
 	public BarcodeMatcher(){
+		originalBarcodeToLabel = new HashMap<String, String>();
 		referenceBarcodeToLabel = new HashMap<DNASequence, String>();
 		cache = new HashMap<DNASequence, Optional<String> >();
 		labelToBarcodeLength = new HashMap<String, Integer>();
@@ -45,6 +50,14 @@ public class BarcodeMatcher {
 		this();
 		this.maxHammingDistance = maxHammingDistance;
 		loadFile(filename);
+	}
+	
+	public BarcodeMatcher(BarcodeMatcher copy) {
+		this();
+		this.maxHammingDistance = copy.maxHammingDistance;
+		for (String barcodeSetString : copy.originalBarcodeToLabel.keySet()) {
+			this.addReferenceSet(barcodeSetString, copy.originalBarcodeToLabel.get(barcodeSetString));
+		}
 	}
 	
 	/**
@@ -80,6 +93,7 @@ public class BarcodeMatcher {
 	 * then cache should be called manually. 
 	 */
 	private void addReferenceSet(String barcodeSetString, String label, boolean clearCaches){
+		originalBarcodeToLabel.put(barcodeSetString, label);
 		String [] barcodeStrings = barcodeSetString.toUpperCase().split(String.valueOf(BARCODE_DELIMITER));
 		// check that barcodes are of the same length
 		if(barcodeStrings.length > 0){
