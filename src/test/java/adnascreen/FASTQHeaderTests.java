@@ -159,4 +159,25 @@ public class FASTQHeaderTests {
 		assertEquals(0, h1.getControlNumber());
 		assertEquals("", h1.getIndex());
 	}
+	
+	@Test
+	public void fastqWithIndexAndBarcodeKey() {
+		String header = "@NS500217:706:HGL7NBGXB:1:11101:5330:1044;CCGGATG_GGCGGTC_TGATCTC:ATCAGAG:CAGCTCT:GCTGAGA.4_CTACTCG:GACGAGT:TCGTCTA:AGTAGAC.2 1:N:0:0";
+		
+		FASTQHeader h1 = new FASTQHeader(header);
+		assertEquals(header, h1.toString());
+		
+		assertEquals(5330, h1.getX());
+		assertEquals(1044, h1.getY());
+		
+		assertEquals(1, h1.getRead());
+		assertEquals(false, h1.isFiltered());
+		assertEquals(0, h1.getControlNumber());
+		
+		IndexAndBarcodeKey key = h1.getKey();
+		assertEquals("CCGGATG", key.getI5Label());
+		assertEquals("GGCGGTC", key.getI7Label());
+		assertEquals("TGATCTC:ATCAGAG:CAGCTCT:GCTGAGA.4", key.getP5Label());
+		assertEquals("CTACTCG:GACGAGT:TCGTCTA:AGTAGAC.2", key.getP7Label());
+	}
 }

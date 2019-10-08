@@ -16,6 +16,10 @@ public class FASTQHeader {
 	private int tile;
 	private int x;
 	private int y;
+	// This is optional. Sequencer data will not have this. 
+	// We add it to the FASTQ where it will be preserved by bwa in the read name
+	// It is used for barcode-aware duplicate marking
+	private IndexAndBarcodeKey key; 
 	private String UMI;
 	private int read;
 	private boolean isFiltered;
@@ -34,12 +38,25 @@ public class FASTQHeader {
 			noLeading = line;
 		}
 		
+		String toParse;
+		// parse out IndexAndBarcodeKey, if it exists
+		if(noLeading.contains(String.valueOf(MergedRead.KEY_SEPARATOR))) {
+			int beginIndex = noLeading.indexOf(MergedRead.KEY_SEPARATOR);
+			int endIndex = noLeading.indexOf(" ");
+			String keyString = noLeading.substring(beginIndex+1, endIndex);
+			key = new IndexAndBarcodeKey(keyString);
+			// original String minus the key with its delimiter
+			toParse = noLeading.substring(0, beginIndex) + noLeading.substring(endIndex);
+		} else {
+			toParse = noLeading;
+		}
+		
 		try {
-			standardHeader(noLeading);
+			standardHeader(toParse);
 		}
 		catch(Exception e1) {
 			try {
-				samToFastqHeader(noLeading);
+				samToFastqHeader(toParse);
 			}
 			catch(Exception e2) {
 				throw e1;
@@ -126,6 +143,10 @@ public class FASTQHeader {
 		b.append(x);
 		b.append(':');
 		b.append(y);
+		if(key != null) {
+			b.append(MergedRead.KEY_SEPARATOR);
+			b.append(key.toString());
+		}
 		if(UMI != null){
 			b.append(':');
 			b.append(UMI);
@@ -157,6 +178,7 @@ public class FASTQHeader {
 				&& this.tile == other.tile
 				&& this.x == other.x
 				&& this.y == other.y
+				&& (key == null || this.key.equals(other.key))
 				&& (UMI == null || this.UMI.equals(other.UMI))
 				// read is not compared
 				&& this.isFiltered == other.isFiltered
@@ -199,6 +221,15 @@ public class FASTQHeader {
 
 	public int getY() {
 		return y;
+	}
+	
+	/**
+	 * This is the Reich Lab IndexAndBarcodeKey, which is a nonstandard inclusion
+	 * in the fastq for barcode-aware duplicate marking 
+	 * @return
+	 */
+	public IndexAndBarcodeKey getKey() {
+		return key;
 	}
 
 	public String getUMI() {
