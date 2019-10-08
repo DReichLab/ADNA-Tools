@@ -3,6 +3,13 @@ package adnascreen;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This is an immutable representation of a DNA sequence. 
+ * Each character is a A, C, T, G, or N.
+ * Uppercase and lowercase are allowed. 
+ * @author mmah
+ *
+ */
 public class DNASequence {
 	private String sequence;
 	

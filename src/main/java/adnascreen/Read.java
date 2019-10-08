@@ -48,6 +48,17 @@ public class Read {
 		this.quality = new QualitySequence(record.getBaseQualityString());
 	}
 	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null || !(other instanceof Read)) {
+			return false;
+		}
+		Read x = (Read) other;
+		return this.header.equals(x.header) 
+				&& this.dna.equals(x.dna)
+				&& this.quality.equals(x.quality);
+	}
+	
 	public int length(){
 		return dna.length();
 	}
@@ -87,11 +98,6 @@ public class Read {
 		builder.append('\n');
 		builder.append(quality);
 		return builder.toString();
-	}
-	
-	public static Read merge(Read a, Read b, int min_overlap){
-		// iterate overlap
-		return null;
 	}
 	
 	/**

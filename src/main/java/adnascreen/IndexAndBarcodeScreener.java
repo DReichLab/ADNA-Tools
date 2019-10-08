@@ -4,10 +4,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -17,6 +19,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -42,17 +53,112 @@ public class IndexAndBarcodeScreener {
 	public static final String MERGED = "merged";
 	public static final String OLIGO = "oligo";
 	
-	private static int pairedReadOutputCount = 0;
-	private static int maxPenalty;
-	private static int mismatchPenaltyHigh;
-	private static int mismatchPenaltyLow;
-	private static int mismatchBaseQualityThreshold;
-	private static int minOverlap;
-	private static int minMergedLength;
+	private int maxPenalty = 3;
+	private int mismatchPenaltyHigh = 3;
+	private int mismatchPenaltyLow= 1;
+	private int mismatchBaseQualityThreshold = 20;
+	private int minOverlap = 15;
+	private int minMergedLength = 30;
 	
-	private static String readGroup = null;
+	private int numOutputFiles = 25;
+	private float barcodeToNoBarcodeThreshold = 0.05f;
+	private String readGroupFilename; 
+	
+	private BarcodeMatcher i5Indices;
+	private BarcodeMatcher i7Indices;
+	private BarcodeMatcher barcodes;
+	
+	boolean reverseComplementI5 = false;
+	private Map<IndexAndBarcodeKey, Integer> barcodeLengthsFromSampleSheet = null;
+	private SampleSetsCounter barcodeCountStatistics = null;
+	
+	private Read positiveOligo = null;
+	private Read positiveOligoReverseComplement = null;
+	
+	private PrintStream printStream = System.out;
+	
+	public IndexAndBarcodeScreener(BarcodeMatcher i5Indices, BarcodeMatcher i7Indices, BarcodeMatcher barcodes){
+		this.i5Indices = i5Indices;
+		this.i7Indices = i7Indices;
+		this.barcodes = barcodes;
+	}
+	
+	class MergeResult{
+		boolean isOligo;
+		MergedRead merged;
+		IndexAndBarcodeKey keyFlattened;
+		String readGroup;
+		
+		MergeResult(IndexAndBarcodeKey keyFlattened, MergedRead merged, boolean isOligo, String readGroup){
+			this.keyFlattened = keyFlattened;
+			this.merged = merged;
+			this.isOligo = isOligo;
+			this.readGroup = readGroup;
+		}
+	}
+	
+	class SynchronizedOutput{
+		PrintWriter [] fileOutputs;
+		// We keep statistics for each 4-tuple of indices and barcodes
+		SampleSetsCounter sampleSetCounter;
+		String readGroup = null;
+		
+		private int pairedReadOutputCount = 0;
+		
+		public SynchronizedOutput(int numOutputFiles, String outputFilenameRoot) throws IOException {
+			sampleSetCounter = new SampleSetsCounter();
+			fileOutputs = new PrintWriter[numOutputFiles];
+			
+			// prepare output files for multiple parallel processing jobs downstream
+			// for load balancing purposes, these are not demultiplexed
+			for(int i = 0; i < numOutputFiles; i++){
+				// start counting from 1 for filenames
+				String outputFilename = String.format("%s_%03d.fastq.gz", outputFilenameRoot, i + 1);
+				fileOutputs[i] = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)))));
+			}
+		}
+		
+		/**
+		 * Update sample counters for raw, oligo, merged categories
+		 * Write merged read to load balanced files
+		 * @param mergeResult
+		 */
+		public synchronized void updateCountersAndWriteMergeToFile(MergeResult mergeResult) {
+			sampleSetCounter.increment(); // statistics recording
+			if(mergeResult.keyFlattened != null) {
+				sampleSetCounter.increment(mergeResult.keyFlattened.toString(), RAW);
+				if(mergeResult.isOligo)
+					sampleSetCounter.increment(mergeResult.keyFlattened.toString(), OLIGO);
 
-	public static void main(String []args) throws IOException, ParseException{
+				if(readGroup == null){
+					readGroup = mergeResult.readGroup;
+				} else { // read groups are expected to match for all reads in lane
+					if(!readGroup.equals(mergeResult.readGroup)){
+						throw new IllegalStateException("FASTQ read group mismatch");
+					}
+				}
+				// output to file and more statistics recording
+				// only reads that pass Illumina's pass filter (PF) [aka chastity filter]
+				if(mergeResult.merged != null && !mergeResult.merged.getFASTQHeader().isFiltered()){
+					// separate into different files
+					fileOutputs[pairedReadOutputCount % fileOutputs.length].println(mergeResult.merged.toString());
+					pairedReadOutputCount++;
+					sampleSetCounter.increment(mergeResult.keyFlattened.toString(), MERGED);
+				}
+			}
+		}
+		
+		public synchronized void cleanup() {
+			for(int i = 0; i < fileOutputs.length; i++){
+				if(fileOutputs[i] != null){
+					fileOutputs[i].close();
+					fileOutputs[i] = null; 
+				}
+			}
+		}
+	}
+
+	public static void main(String []args) throws IOException, ParseException, InterruptedException, ExecutionException{
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
 		options.addRequiredOption("i", "i5-indices", true, 
@@ -75,94 +181,167 @@ public class IndexAndBarcodeScreener {
 		options.addOption("x", "index-barcode-keys", true, "Index-barcode keys for setting explicit barcode lengths");
 		options.addOption("z", "positive-oligo", true, "Provide count for reads matching provided positive oligo sequence");
 		options.addOption("y", "reverse-complement-i5", false, "Whether i5 index should be reverse complemented (NextSeq is not)");
+		options.addOption(null, "threads", true, "Number of threads for thread pool");
 		
 		options.addOption(null, "fixed-i5", true, "Assume all fragments have this i5 sequence label");
 		options.addOption(null, "fixed-i7", true, "Assume all fragments have this i7 sequence label");
 		CommandLine commandLine	= parser.parse(options, args);
 		
-		BarcodeMatcher i5Indices = null, i7Indices = null;
-		BarcodeMatcher barcodes = null;
-		// We keep statistics for each 4-tuple of indices and barcodes
-		SampleSetsCounter sampleSetCounter = new SampleSetsCounter();
-		maxPenalty = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-max", "3"));
-		mismatchPenaltyHigh = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-high", "3"));
-		mismatchPenaltyLow = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-low", "1"));
-		mismatchBaseQualityThreshold = Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-threshold", "20"));
-		minOverlap = Integer.valueOf(commandLine.getOptionValue('o', "15"));
-		minMergedLength = Integer.valueOf(commandLine.getOptionValue('l', "30"));
-		final int numOutputFiles = Integer.valueOf(commandLine.getOptionValue('n', "25"));
 		final int maxHammingDistance = Integer.valueOf(commandLine.getOptionValue('h', "1"));
-		final float barcodeToNoBarcodeThreshold = Float.valueOf(commandLine.getOptionValue("barcode-threshold", "0.05"));
 		String readGroupFilename = commandLine.getOptionValue("read-group-file", "read_group");
 		
-		try{
-			i5Indices = new BarcodeMatcher(commandLine.getOptionValue("i5-indices"), maxHammingDistance);
-			i7Indices = new BarcodeMatcher(commandLine.getOptionValue("i7-indices"), maxHammingDistance);
-			barcodes = new BarcodeMatcher(commandLine.getOptionValue('b'), maxHammingDistance);
-		} catch(IOException e){
-			System.exit(1);
-		}
+		BarcodeMatcher i5Indices = new BarcodeMatcher(commandLine.getOptionValue("i5-indices"), maxHammingDistance);
+		BarcodeMatcher i7Indices = new BarcodeMatcher(commandLine.getOptionValue("i7-indices"), maxHammingDistance);
+		BarcodeMatcher barcodes = new BarcodeMatcher(commandLine.getOptionValue('b'), maxHammingDistance);
 		
-		final boolean reverseComplementI5 = commandLine.hasOption('y'); 
+		IndexAndBarcodeScreener screener = new IndexAndBarcodeScreener(i5Indices, i7Indices, barcodes);
+		screener.setMaxPenalty(Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-max", "3")));
+		screener.setMismatchPenaltyHigh(Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-high", "3")));
+		screener.setMismatchPenaltyLow(Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-low", "1")));
+		screener.setMismatchBaseQualityThreshold(Integer.valueOf(commandLine.getOptionValue("mismatch-penalty-threshold", "20")));
+		screener.setMinOverlap(Integer.valueOf(commandLine.getOptionValue('o', "15")));
+		screener.setMinMergedLength(Integer.valueOf(commandLine.getOptionValue('l', "30")));
+		screener.setNumOutputFiles(Integer.valueOf(commandLine.getOptionValue('n', "25")));
+		screener.setBarcodeToNoBarcodeThreshold(Float.valueOf(commandLine.getOptionValue("barcode-threshold", "0.05")));
+		screener.setReadGroupFilename(readGroupFilename);
+		
+		screener.setReverseComplementI5(commandLine.hasOption('y'));
+		
+		int numThreads = Integer.valueOf(commandLine.getOptionValue("threads", "1"));
 		
 		// optional specification of barcode lengths from index-barcode key file
-		Map<IndexAndBarcodeKey, Integer> barcodeLengthsFromSampleSheet = null;
 		String explicitIndexFile = commandLine.getOptionValue("index-barcode-keys", null);
 		if (explicitIndexFile != null) {
-			barcodeLengthsFromSampleSheet = barcodeLengthsByIndexPair(explicitIndexFile, barcodes);
+			screener.setBarcodeLengthsFromSampleSheet(barcodeLengthsByIndexPair(explicitIndexFile, barcodes));
 		}
 		
 		// A previous pass through the data is needed to count the number of paired reads
 		// that demultiplex with barcodes
 		final String barcodeCountStatisticsFilename = commandLine.getOptionValue("barcode-count", null);
-		SampleSetsCounter barcodeCountStatistics = null;
 		if(barcodeCountStatisticsFilename != null){
 			File barcodeCountStatisticsFile = new File(barcodeCountStatisticsFilename);
-			barcodeCountStatistics = new SampleSetsCounter(barcodeCountStatisticsFile);
+			screener.setBarcodeCountStatistics(new SampleSetsCounter(barcodeCountStatisticsFile));
 		}
-		Map<IndexAndBarcodeKey, Integer> barcodeLengthByIndexPairCache = new HashMap<IndexAndBarcodeKey, Integer>();
 		
 		// positive oligo
 		// count the number of appearances of this sequence
 		// This is for wetlab diagnostic purposes
 		String positiveOligoSequence = commandLine.getOptionValue("positive-oligo", null);
-		Read positiveOligo = null;
-		Read positiveOligoReverseComplement = null;
 		if(positiveOligoSequence != null) {
-			String qualityString = String.join("", Collections.nCopies(positiveOligoSequence.length(), "I")); // oligo sequence is max quality
-			positiveOligo = new Read("", positiveOligoSequence, qualityString);
-			positiveOligoReverseComplement = positiveOligo.reverseComplement();
+			screener.setPositiveOligo(positiveOligoSequence);
 		}
-
+		
 		String[] remainingArgs = commandLine.getArgs();
-		PrintWriter [] fileOutputs = new PrintWriter[numOutputFiles];
-		
-		// prepare output files for multiple parallel processing jobs downstream
-		// for load balancing purposes, these are not demultiplexed
-		String outputFilenameRoot = remainingArgs[remainingArgs.length-1];
-		for(int i = 0; i < numOutputFiles; i++){
-			// start counting from 1 for filenames
-			String outputFilename = String.format("%s_%03d.fastq.gz", outputFilenameRoot, i + 1);
-			fileOutputs[i] = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)))));
-		}
-		
+		String outputFilenameRoot = remainingArgs[remainingArgs.length-1]; // last argument determines output filenames
+		String r1Filename = remainingArgs[0];
+		String r2Filename = remainingArgs[1];
+		String i1Filename = null;
+		String i2Filename = null;
+		String i5Label = null;
+		String i7Label = null;
+
 		// If there are fixed indices, we use those and do not have index reads
 		if(commandLine.hasOption("fixed-i5") && commandLine.hasOption("fixed-i7")) {
-			String i5Label = commandLine.getOptionValue("fixed-i5");
-			String i7Label = commandLine.getOptionValue("fixed-i7");
+			i5Label = commandLine.getOptionValue("fixed-i5");
+			i7Label = commandLine.getOptionValue("fixed-i7");
+			if(remainingArgs.length != 3) {
+				throw new IllegalStateException("Unexpected number of remaining arguments when indices fixed: " + remainingArgs.length);
+			}
+		}
+		else { // processing with index reads
+			if(remainingArgs.length != 5) {
+				throw new IllegalStateException("Unexpected number of remaining arguments with index reads: " + remainingArgs.length);
+			}
+			i1Filename = remainingArgs[2];
+			i2Filename = remainingArgs[3];
+		}
+		// start processing
+		screener.performScreeningMergeTrim(numThreads, outputFilenameRoot, r1Filename, r2Filename, i1Filename, i2Filename, i5Label, i7Label);
+	}
+
+	protected void performScreeningMergeTrim(int numThreads, String outputFilenameRoot, String r1Filename, String r2Filename, String i1Filename, String i2Filename,
+			String i5Label, String i7Label) throws IOException, ParseException, InterruptedException, ExecutionException {
+		BlockingQueue<Runnable> inputsQueue = new ArrayBlockingQueue<Runnable>(numOutputFiles * numThreads);
+		BlockingQueue<Future<MergeResult>> resultsQueue = new ArrayBlockingQueue<Future<MergeResult>>(numOutputFiles * numThreads);
+		SynchronizedOutput output = new SynchronizedOutput(numOutputFiles, outputFilenameRoot);
+		// if input thread cannot submit new job, run that job in the input thread
+		// It would be a better design to block (so there is always a producer thread), 
+		// but that is not available from standard java libraries
+		RejectedExecutionHandler rejectedExecutionHandler = new ThreadPoolExecutor.CallerRunsPolicy();
+		ExecutorService pool = new ThreadPoolExecutor(numThreads, numThreads, 5, TimeUnit.MINUTES, inputsQueue, rejectedExecutionHandler);
+				
+		// Exactly one thread handles file input to preserve order
+		Future<Boolean> inputFuture = pool.submit(new Callable<Boolean>() {
+			public Boolean call() throws IOException, InterruptedException{
+				try {
+					// queue each paired read for merging
+					enqueuePairedReads(pool, resultsQueue, r1Filename, r2Filename, i1Filename, i2Filename, i5Label, i7Label);
+					return new Boolean(true);
+				} catch (IOException | InterruptedException e) {
+					throw(e);
+				} finally {
+					pool.shutdown();
+				}
+			}
+		});
+		
+		// the main thread serves as the output thread
+		while(!pool.isTerminated() || !resultsQueue.isEmpty()) {
+			// fetch next result, with timeout
+			Future<MergeResult> mergeResultFuture = resultsQueue.poll(1, TimeUnit.SECONDS);
+			if(mergeResultFuture != null) {
+				try {
+					MergeResult mergeResult = mergeResultFuture.get();
+					output.updateCountersAndWriteMergeToFile(mergeResult);
+				} catch (ExecutionException e) {
+					throw(e);
+				}
+			}
+		}
+		inputFuture.get(); //  check for input thread exception
+		
+		// output map statistics
+		printStream.println(output.sampleSetCounter.toStringSorted(RAW));
+		// output read group
+		if(readGroupFilename != null){
+			try(PrintWriter readGroupFile = new PrintWriter(readGroupFilename)){
+				readGroupFile.println(output.readGroup);
+			}
+		}
+		output.cleanup();
+	}
+	
+	/**
+	 * Find the index/barcodes for each read pair, then submit to thread pool to merge
+	 * There are two separate cases:
+	 * 1. index reads are set at command line
+	 * 2. index reads are read from fastq
+	 * @param pool
+	 * @param resultsQueue
+	 * @param r1Filename
+	 * @param r2Filename
+	 * @param i1Filename
+	 * @param i2Filename
+	 * @param i5Label
+	 * @param i7Label
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	protected void enqueuePairedReads(ExecutorService pool, BlockingQueue<Future<MergeResult>> resultsQueue, 
+			String r1Filename, String r2Filename, String i1Filename, String i2Filename, String i5Label, String i7Label) throws FileNotFoundException, IOException, InterruptedException {
+		Map<IndexAndBarcodeKey, Integer> barcodeLengthByIndexPairCache = new HashMap<IndexAndBarcodeKey, Integer>();
+		
+		if(i5Label != null && i7Label != null) {
 			if(i5Indices.getBarcodeLength(i5Label) == 0) {
 				throw new RuntimeException("Bad index label: " + i5Label);
 			}
 			if(i7Indices.getBarcodeLength(i7Label) == 0) {
 				throw new RuntimeException("Bad index label: " + i7Label);
 			}
-			if(remainingArgs.length != 3) {
-				throw new IllegalStateException("Unexpected number of remaining arguments when indices fixed: " + remainingArgs.length);
-			}
-
 			try(
-					FileInputStream r1File = new FileInputStream(remainingArgs[0]);
-					FileInputStream r2File = new FileInputStream(remainingArgs[1]);
+					FileInputStream r1File = new FileInputStream(r1Filename);
+					FileInputStream r2File = new FileInputStream(r1Filename);
 
 					FastqReader r1Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r1File))));
 					FastqReader r2Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r2File))));
@@ -175,26 +354,25 @@ public class IndexAndBarcodeScreener {
 					IndexAndBarcodeKey keyIndexOnly = MergedRead.findExperimentKey(r1, r2, i5Label, i7Label, null, -1);
 					int barcodeLength = findBarcodeLength(barcodeCountStatistics, keyIndexOnly, barcodeLengthByIndexPairCache, 
 							barcodeLengthsFromSampleSheet, barcodes, barcodeToNoBarcodeThreshold);
-					
+
 					// update key if barcodes are used, otherwise reuse the index pair
 					IndexAndBarcodeKey key = (barcodeLength > 0) ? MergedRead.findExperimentKey(r1, r2, i5Label, i7Label, barcodes, -1) : keyIndexOnly;
 
-					updateCountersAndWriteMergedRead(sampleSetCounter, key, barcodes, r1, r2, positiveOligo, positiveOligoReverseComplement, fileOutputs);
+					Future<MergeResult> x = pool.submit(new Callable<MergeResult>() {
+						public MergeResult call() {
+							MergeResult mergeResult = merge(key, r1, r2);
+							return mergeResult;
+						}
+					});
+					resultsQueue.put(x);
 				}
-			} catch(IOException e){
-				System.err.println(e);
-				System.exit(1);
 			}
-		}
-		else { // processing with index reads
-			if(remainingArgs.length != 5) {
-				throw new IllegalStateException("Unexpected number of remaining arguments with index reads: " + remainingArgs.length);
-			}
+		} else {
 			try( 
-					FileInputStream r1File = new FileInputStream(remainingArgs[0]);
-					FileInputStream r2File = new FileInputStream(remainingArgs[1]);
-					FileInputStream i1File = new FileInputStream(remainingArgs[2]);
-					FileInputStream i2File = new FileInputStream(remainingArgs[3]);
+					FileInputStream r1File = new FileInputStream(r1Filename);
+					FileInputStream r2File = new FileInputStream(r2Filename);
+					FileInputStream i1File = new FileInputStream(i1Filename);
+					FileInputStream i2File = new FileInputStream(i2Filename);
 
 					FastqReader r1Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r1File))));
 					FastqReader r2Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r2File))));
@@ -222,85 +400,49 @@ public class IndexAndBarcodeScreener {
 					IndexAndBarcodeKey key = (barcodeLength > 0) ? MergedRead.findExperimentKey(r1, r2, i1, i2, 
 							i5Indices, i7Indices, barcodes, barcodeLength) : keyIndexOnly;
 
-					updateCountersAndWriteMergedRead(sampleSetCounter, key, barcodes, r1, r2, positiveOligo, positiveOligoReverseComplement, fileOutputs);
+					Future<MergeResult> x = pool.submit(new Callable<MergeResult>() {
+						public MergeResult call() {
+							MergeResult mergeResult = merge(key, r1, r2);
+							return mergeResult;
+						}
+					});
+					resultsQueue.put(x);
 				}
-			} catch(IOException e){
-				System.err.println(e);
-				System.exit(1);
-			} 
-		}
-		
-		// output map statistics
-		PrintStream statisticsOutput = System.out;
-		statisticsOutput.println(sampleSetCounter.toStringSorted(RAW));
-		// output read group
-		if(readGroupFilename != null){
-			try(PrintWriter readGroupFile = new PrintWriter(readGroupFilename)){
-				readGroupFile.println(readGroup);
-			}
-		}
-		// cleanup
-		for(int i = 0; i < fileOutputs.length; i++){
-			if(fileOutputs[i] != null){
-				fileOutputs[i].close();
 			}
 		}
 	}
 	
 	/**
-	 * This is a hacky function to combine accounting and file output common between processing with and without index reads
-	 * We use static class variables liberally. 
-	 * @param sampleSetCounter
+	 * 
 	 * @param key
-	 * @param barcodes
 	 * @param r1
 	 * @param r2
-	 * @param maxPenalty
-	 * @param minOverlap
-	 * @param minMergedLength
-	 * @param mismatchPenaltyHigh
-	 * @param mismatchPenaltyLow
-	 * @param mismatchBaseQualityThreshold
-	 * @return read group string
+	 * @return
 	 */
-	public static void updateCountersAndWriteMergedRead(SampleSetsCounter sampleSetCounter, IndexAndBarcodeKey key, BarcodeMatcher barcodes, Read r1, Read r2,
-			Read positiveOligo, Read positiveOligoReverseComplement, PrintWriter [] fileOutputs) {
+	public MergeResult merge(IndexAndBarcodeKey key, Read r1, Read r2) {
 		IndexAndBarcodeKey keyFlattened = null;
-		sampleSetCounter.increment(); // statistics recording
 		MergedRead merged = null;
+		boolean isOligo = false;
+		String readGroup = null;
 		if(key != null){
 			keyFlattened = key.flatten();
 			int r1BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP5Label());
 			int r2BarcodeLength = barcodes.getBarcodeLength(keyFlattened.getP7Label());
-			sampleSetCounter.increment(keyFlattened.toString(), RAW);
 			merged = MergedRead.mergePairedSequences(r1, r2, key, 
 					r1BarcodeLength, r2BarcodeLength, maxPenalty, minOverlap, minMergedLength,
 					mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
 			// read group consistency
-			String readGroupForThisRead = r1.getFASTQHeader().getReadGroupElements();
-			if(readGroup == null){
-				readGroup = readGroupForThisRead;
-			} else { // read groups are expected to match for all reads in lane
-				if(!readGroup.equals(readGroupForThisRead)){
-					throw new IllegalStateException("FASTQ read group mismatch");
-				}
-			}
+			readGroup = r1.getFASTQHeader().getReadGroupElements();
 			// count occurrences of positive oligo
 			if(positiveOligo != null && merged != null) {
 				if(Read.alignmentAssessment(positiveOligo, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)
 					|| Read.alignmentAssessment(positiveOligoReverseComplement, merged, 0, 0, positiveOligo.length(), maxPenalty, mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold)) {
-					sampleSetCounter.increment(keyFlattened.toString(), OLIGO);
+					isOligo = true;
 				}
 			}
 		}
-		// output to file and more statistics recording
-		// only reads that pass Illumina's pass filter (PF) [aka chastity filter]
-		if(merged != null && !merged.getFASTQHeader().isFiltered()){
-			// separate into different files
-			fileOutputs[pairedReadOutputCount % fileOutputs.length].println(merged.toString());
-			pairedReadOutputCount++;
-			sampleSetCounter.increment(keyFlattened.toString(), MERGED);
-		}
+		MergeResult result = new MergeResult(keyFlattened, merged, isOligo, readGroup);
+		return result;
 	}
 	
 	/**
@@ -440,5 +582,119 @@ public class IndexAndBarcodeScreener {
 			}
 		}
 		return barcodeLengths;
+	}
+
+	public int getMaxPenalty() {
+		return maxPenalty;
+	}
+
+	public void setMaxPenalty(int maxPenalty) {
+		this.maxPenalty = maxPenalty;
+	}
+
+	public int getMismatchPenaltyHigh() {
+		return mismatchPenaltyHigh;
+	}
+
+	public void setMismatchPenaltyHigh(int mismatchPenaltyHigh) {
+		this.mismatchPenaltyHigh = mismatchPenaltyHigh;
+	}
+
+	public int getMismatchPenaltyLow() {
+		return mismatchPenaltyLow;
+	}
+
+	public void setMismatchPenaltyLow(int mismatchPenaltyLow) {
+		this.mismatchPenaltyLow = mismatchPenaltyLow;
+	}
+
+	public int getMismatchBaseQualityThreshold() {
+		return mismatchBaseQualityThreshold;
+	}
+
+	public void setMismatchBaseQualityThreshold(int mismatchBaseQualityThreshold) {
+		this.mismatchBaseQualityThreshold = mismatchBaseQualityThreshold;
+	}
+
+	public int getMinOverlap() {
+		return minOverlap;
+	}
+
+	public void setMinOverlap(int minOverlap) {
+		this.minOverlap = minOverlap;
+	}
+
+	public int getMinMergedLength() {
+		return minMergedLength;
+	}
+
+	public void setMinMergedLength(int minMergedLength) {
+		this.minMergedLength = minMergedLength;
+	}
+
+	public int getNumOutputFiles() {
+		return numOutputFiles;
+	}
+
+	public void setNumOutputFiles(int numOutputFiles) {
+		this.numOutputFiles = numOutputFiles;
+	}
+
+	public Read getPositiveOligo() {
+		return positiveOligo;
+	}
+
+	public void setPositiveOligo(String positiveOligoSequence) {
+		String qualityString = String.join("", Collections.nCopies(positiveOligoSequence.length(), "I")); // oligo sequence is max quality
+		positiveOligo = new Read("", positiveOligoSequence, qualityString);
+		positiveOligoReverseComplement = positiveOligo.reverseComplement();
+	}
+	
+	public float getBarcodeToNoBarcodeThreshold() {
+		return barcodeToNoBarcodeThreshold;
+	}
+
+	public void setBarcodeToNoBarcodeThreshold(float barcodeToNoBarcodeThreshold) {
+		this.barcodeToNoBarcodeThreshold = barcodeToNoBarcodeThreshold;
+	}
+
+	public String getReadGroupFilename() {
+		return readGroupFilename;
+	}
+
+	public void setReadGroupFilename(String readGroupFilename) {
+		this.readGroupFilename = readGroupFilename;
+	}
+
+	public boolean isReverseComplementI5() {
+		return reverseComplementI5;
+	}
+
+	public void setReverseComplementI5(boolean reverseComplementI5) {
+		this.reverseComplementI5 = reverseComplementI5;
+	}
+
+	public Map<IndexAndBarcodeKey, Integer> getBarcodeLengthsFromSampleSheet() {
+		return barcodeLengthsFromSampleSheet;
+	}
+
+	public void setBarcodeLengthsFromSampleSheet(Map<IndexAndBarcodeKey, Integer> barcodeLengthsFromSampleSheet) {
+		this.barcodeLengthsFromSampleSheet = barcodeLengthsFromSampleSheet;
+	}
+
+	public SampleSetsCounter getBarcodeCountStatistics() {
+		return barcodeCountStatistics;
+	}
+
+	public void setBarcodeCountStatistics(SampleSetsCounter barcodeCountStatistics) {
+		this.barcodeCountStatistics = barcodeCountStatistics;
+	}
+
+	public PrintStream getPrintStream() {
+		return printStream;
+	}
+
+	public void setPrintStream(OutputStream stream) {
+		this.printStream = new PrintStream(stream);
 	}
 }

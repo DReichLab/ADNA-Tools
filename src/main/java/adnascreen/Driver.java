@@ -2,6 +2,7 @@ package adnascreen;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.cli.ParseException;
 
@@ -14,7 +15,7 @@ import org.apache.commons.cli.ParseException;
 public class Driver {
 	public static final String PROGRAM_NAME = "adnatools";
 	
-	public static void main(String[] args) throws ParseException, IOException, java.text.ParseException {
+	public static void main(String[] args) throws ParseException, IOException, java.text.ParseException, InterruptedException, ExecutionException {
 		final String versionOption = "version";
 		String command;
 		String [] remainingArgs = new String[0];

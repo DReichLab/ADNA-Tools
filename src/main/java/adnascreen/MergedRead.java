@@ -41,10 +41,26 @@ public class MergedRead extends Read{
 	public String toString(){
 		StringBuilder builder = new StringBuilder();
 		builder.append(super.toString()); // FASTQ format
-		int firstSpaceIndex = builder.indexOf(" ");
-		builder.insert(firstSpaceIndex, key.toString());
-		builder.insert(firstSpaceIndex, KEY_SEPARATOR);
+		IndexAndBarcodeKey headerKey = this.getFASTQHeader().getKey();
+		if(headerKey == null){ // don't include the key twice
+			int firstSpaceIndex = builder.indexOf(" ");
+			builder.insert(firstSpaceIndex, key.toString());
+			builder.insert(firstSpaceIndex, KEY_SEPARATOR);
+		} else { // index and barcode information is already in string
+			if (!headerKey.equals(key)) {
+				throw new IllegalStateException("IndexAndBarcodeKey mismatch " + headerKey.toString() + " " + key.toString());
+			}
+		}
 		return builder.toString();
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if (other == null || !(other instanceof MergedRead)) {
+			return false;
+		}
+		MergedRead x = (MergedRead) other;
+		return this.key.equals(x.key) && super.equals(other);
 	}
 	
 	/**
