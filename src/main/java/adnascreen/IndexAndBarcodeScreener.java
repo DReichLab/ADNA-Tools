@@ -103,7 +103,7 @@ public class IndexAndBarcodeScreener {
 		SampleSetsCounter sampleSetCounter;
 		String readGroup = null;
 		
-		private int pairedReadOutputCount = 0;
+		private int pairedReadOutputCount = 0; // used only for distributing reads across output files
 		
 		public SynchronizedOutput(int numOutputFiles, String outputFilenameRoot) throws IOException {
 			sampleSetCounter = new SampleSetsCounter();
@@ -143,6 +143,8 @@ public class IndexAndBarcodeScreener {
 					// separate into different files
 					fileOutputs[pairedReadOutputCount % fileOutputs.length].println(mergeResult.merged.toString());
 					pairedReadOutputCount++;
+					if (pairedReadOutputCount >= fileOutputs.length)
+						pairedReadOutputCount -= fileOutputs.length;
 					sampleSetCounter.increment(mergeResult.keyFlattened.toString(), MERGED);
 				}
 			}
@@ -294,7 +296,8 @@ public class IndexAndBarcodeScreener {
 					MergeResult mergeResult = mergeResultFuture.get();
 					output.updateCountersAndWriteMergeToFile(mergeResult);
 				} catch (ExecutionException e) {
-					throw(e);
+					System.err.println(e);
+					System.exit(1);
 				}
 			}
 		}
