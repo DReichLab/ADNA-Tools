@@ -46,11 +46,13 @@ public class DemultiplexSAM {
 		options.addOption("r", "minimumReads", true, "Minimum number of reads to process");
 		options.addOption("b", "BAM", false, "Use bam files for output");
 		options.addOption("e", "explicit", true, "Explicit indices to demultiplex");
+		options.addOption(null, "bufferSize", true, "Output file buffer size for performance");
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
 		int maximumConcurrentOpenFiles = Integer.valueOf(commandLine.getOptionValue('m', "1000"));
 		int minimumReads = Integer.valueOf(commandLine.getOptionValue('r', "1"));
+		int bufferSize = Integer.valueOf(commandLine.getOptionValue("bufferSize", "1048576")); // 1 MB
 		boolean useBAM = commandLine.hasOption('b');
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
@@ -183,7 +185,7 @@ public class DemultiplexSAM {
 								SAMFileWriter output = outputFilesConcurrent.get(keyFlattened);
 								if(output == null){ // open new file, if none exists for this key
 									String outputFilename = (keyFlattened.toString() + fileExtension).replace(':', '-'); // Cromwell chokes on files with ':'
-									BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
+									BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename), bufferSize);
 									if(useBAM){
 										output = outputFileFactory.makeBAMWriter(header, false, outputFile);
 									} else {
