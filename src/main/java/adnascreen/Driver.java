@@ -66,6 +66,9 @@ public class Driver {
 		case "duplicatestagrewrite":
 			DuplicatesTagRewrite.main(remainingArgs);
 			break;
+		case "barcodemover":
+			BarcodeMover.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}
