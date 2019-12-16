@@ -19,6 +19,7 @@ import org.apache.commons.cli.ParseException;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMFormatException;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -50,6 +51,7 @@ public class AssignReadGroups {
 		options.addOption("l", "library", true, "Library");
 		options.addOption("q", "sequencing-center", true, "sequencing center producing read");
 		options.addOption("p", "sequencing-platform", true, "sequencing platform producing read");
+		options.addOption(null, "lenient", false, "skip reads with SAM format errors");
 		
 		CommandLine commandLine	= parser.parse( options, args );
 		
@@ -63,6 +65,7 @@ public class AssignReadGroups {
 		String library = commandLine.getOptionValue("library", null);
 		String sequencingCenter = commandLine.getOptionValue("sequencing-center", null);
 		String sequencingPlatform = commandLine.getOptionValue("sequencing-platform", "ILLUMINA");
+		boolean lenient = commandLine.hasOption("lenient");
 		
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
 		// key format is platform unit: flowcellID.lane
@@ -79,36 +82,44 @@ public class AssignReadGroups {
 			header = reader.getFileHeader();
 			SAMRecordIterator i = reader.iterator();
 			while(i.hasNext()){
-				SAMRecord record = i.next();
-				String readName = record.getReadName();
-				// parse read group information from read name
-				String[] fields = readName.split(":");
-				
-				String instrument = fields[0];
-				int runNumber = Integer.valueOf(fields[1]);
-				String flowcellID = fields[2];
-				int lane = Integer.valueOf(fields[3]);
+				try {
+					SAMRecord record = i.next();
+					String readName = record.getReadName();
+					// parse read group information from read name
+					String[] fields = readName.split(":");
 
-				// generate a read group, if there is not one present already
-				// use shortened platform unit
-				String platformUnit = String.format("%s.%d", flowcellID, lane);
-				if(!readGroups.containsKey(platformUnit)){
-					// combine with label and data
-					String readGroupID = assembleReadGroupID(label, date, flowcellID, lane);
-					
-					SAMReadGroupRecord group = new SAMReadGroupRecord(readGroupID);
-					if(sequencingCenter != null)
-						group.setSequencingCenter(sequencingCenter);
-					group.setRunDate(date);
-					if(library != null)
-						group.setLibrary(library);
-					group.setPlatform(sequencingPlatform);
-					group.setPlatformModel(String.format("%s %d", instrument, runNumber));
-					group.setPlatformUnit(platformUnit);
-					group.setSample(sampleID);
-					
-					readGroups.put(platformUnit, group);
-				}				
+					String instrument = fields[0];
+					int runNumber = Integer.valueOf(fields[1]);
+					String flowcellID = fields[2];
+					int lane = Integer.valueOf(fields[3]);
+
+					// generate a read group, if there is not one present already
+					// use shortened platform unit
+					String platformUnit = String.format("%s.%d", flowcellID, lane);
+					if(!readGroups.containsKey(platformUnit)){
+						// combine with label and data
+						String readGroupID = assembleReadGroupID(label, date, flowcellID, lane);
+
+						SAMReadGroupRecord group = new SAMReadGroupRecord(readGroupID);
+						if(sequencingCenter != null)
+							group.setSequencingCenter(sequencingCenter);
+						group.setRunDate(date);
+						if(library != null)
+							group.setLibrary(library);
+						group.setPlatform(sequencingPlatform);
+						group.setPlatformModel(String.format("%s %d", instrument, runNumber));
+						group.setPlatformUnit(platformUnit);
+						group.setSample(sampleID);
+
+						readGroups.put(platformUnit, group);
+					}
+				} catch(SAMFormatException e){
+					if(lenient) {
+						System.err.println(e);
+					} else {
+						throw e;
+					}
+				}
 			}
 		}
 		// on second pass, write to file with read groups
@@ -130,26 +141,34 @@ public class AssignReadGroups {
 			
 			SAMRecordIterator i = reader.iterator();
 			while(i.hasNext()){
-				SAMRecord record = i.next();
-				// shorten read names by removing info common to read group (instrument, runNumber, flowcellID, lane)
-				String readName = record.getReadName();
-				// parse read group information from read name
-				String[] fields = readName.split(":");
-				
-				String flowcellID = fields[2];
-				int lane = Integer.valueOf(fields[3]);
-				int tile = Integer.valueOf(fields[4]);
-				int x = Integer.valueOf(fields[5]);
-				int y = Integer.valueOf(fields[6]);
-				
-				String shortenedReadName = String.format("%d:%d:%d", tile, x, y);
-				record.setReadName(shortenedReadName);
-				
-				// set read group
-				String readGroupID = assembleReadGroupID(label, date, flowcellID, lane);
-				record.setAttribute(SAMTag.RG.toString(), readGroupID);
-				// write to file with read group
-				output.addAlignment(record);
+				try {
+					SAMRecord record = i.next();
+					// shorten read names by removing info common to read group (instrument, runNumber, flowcellID, lane)
+					String readName = record.getReadName();
+					// parse read group information from read name
+					String[] fields = readName.split(":");
+
+					String flowcellID = fields[2];
+					int lane = Integer.valueOf(fields[3]);
+					int tile = Integer.valueOf(fields[4]);
+					int x = Integer.valueOf(fields[5]);
+					int y = Integer.valueOf(fields[6]);
+
+					String shortenedReadName = String.format("%d:%d:%d", tile, x, y);
+					record.setReadName(shortenedReadName);
+
+					// set read group
+					String readGroupID = assembleReadGroupID(label, date, flowcellID, lane);
+					record.setAttribute(SAMTag.RG.toString(), readGroupID);
+					// write to file with read group
+					output.addAlignment(record);
+				} catch(SAMFormatException e){
+					if(lenient) {
+						System.err.println(e);
+					} else {
+						throw e;
+					}
+				}
 			}
 			output.close();
 		}
