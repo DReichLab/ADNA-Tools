@@ -47,13 +47,18 @@ public class DemultiplexSAM {
 		options.addOption("b", "BAM", false, "Use bam files for output");
 		options.addOption("e", "explicit", true, "Explicit indices to demultiplex");
 		options.addOption(null, "bufferSize", true, "Output file buffer size for performance");
+		options.addOption("c", "compression", true, "BAM compression level for htsjdk 0-9 default 5");
+		options.addOption("null", "async", false, "Use asynchronous threading for output");
+		
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
 		int maximumConcurrentOpenFiles = Integer.valueOf(commandLine.getOptionValue('m', "1000"));
 		int minimumReads = Integer.valueOf(commandLine.getOptionValue('r', "1"));
 		int bufferSize = Integer.valueOf(commandLine.getOptionValue("bufferSize", "1048576")); // 1 MB
+		int compressionLevel = Integer.valueOf(commandLine.getOptionValue("compression", "5"));
 		boolean useBAM = commandLine.hasOption('b');
+		boolean useAsyncThreads = commandLine.hasOption("async");
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
 		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
@@ -62,6 +67,9 @@ public class DemultiplexSAM {
 		
 		SAMSequenceDictionary alignmentReference = null;
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
+		outputFileFactory.setBufferSize(bufferSize);
+		outputFileFactory.setCompressionLevel(compressionLevel);
+		outputFileFactory.setUseAsyncIo(useAsyncThreads);
 		
 		// allow explicit additions to list of samples to demultiplex
 		// these will always be demultiplexed, independent of the top number of samples or number of raw reads
@@ -136,7 +144,7 @@ public class DemultiplexSAM {
 			// iterate through input files
 			List<String> samFilenamesToProcess = commandLine.getArgList();
 			for(String filename : samFilenamesToProcess){
-				SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
+				SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename), bufferSize));
 				try(
 						SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
 						){
