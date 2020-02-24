@@ -50,7 +50,7 @@ public class Driver {
 			break;
 		case "hardclip":
 			remainingArgs = Arrays.copyOfRange(args, 0, args.length);
-			remainingArgs[0] = "hard";
+			remainingArgs[0] = "--hard";
 			Clipping.main(remainingArgs);
 			break;
 		case "assignreadgroups":
