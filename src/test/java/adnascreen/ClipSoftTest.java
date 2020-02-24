@@ -26,7 +26,7 @@ import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.TextCigarCodec;
 import htsjdk.samtools.util.CigarUtil;
 
-public class SoftClipTest {
+public class ClipSoftTest {
 	@Rule
 	public TemporaryFolder testFolder = new TemporaryFolder();
 	
@@ -49,7 +49,7 @@ public class SoftClipTest {
 				assertFalse(record.getCigar().isRightClipped());
 				assertFalse(record.getCigar().isLeftClipped());
 
-				SoftClip.softClipBothEndsOfRead(record, numSoftClipBases);
+				Clipping.softClipBothEndsOfRead(record, numSoftClipBases);
 
 				//System.out.println(unmodified);
 				//System.out.println(record.getCigar());
@@ -221,13 +221,13 @@ public class SoftClipTest {
 	@Test
 	public void cigarInsertLength(){
 		Cigar c = TextCigarCodec.decode("52M2I5M");
-		assertEquals(2, SoftClip.editDistance(c));
+		assertEquals(2, Clipping.editDistance(c));
 	}
 	
 	@Test
 	public void cigarInsertLength2(){
 		Cigar c = TextCigarCodec.decode("52M1D5M");
-		assertEquals(0, SoftClip.editDistance(c));
+		assertEquals(0, Clipping.editDistance(c));
 	}
 	
 	@Test
@@ -257,7 +257,7 @@ public class SoftClipTest {
 		record.setAttribute("MD", "0A17T1^C23C7");
 		record.setAttribute("NM", 4);
 		
-		SoftClip.softClipBothEndsOfRead(record, 2);
+		Clipping.softClipBothEndsOfRead(record, 2);
 		assertEquals(readName, record.getReadName());
 		assertEquals(referenceName, record.getReferenceName());
 		assertEquals(flags, record.getFlags());
@@ -300,7 +300,7 @@ public class SoftClipTest {
 		record.setAttribute("MD", "41C4G5G5^T5");
 		record.setAttribute("NM", 5);
 		
-		SoftClip.softClipBothEndsOfRead(record, 2);
+		Clipping.softClipBothEndsOfRead(record, 2);
 		assertEquals(readName, record.getReadName());
 		assertEquals(referenceName, record.getReferenceName());
 		assertEquals(flags, record.getFlags());
@@ -359,7 +359,7 @@ public class SoftClipTest {
 		original.setAttribute("MD", "0A17T1^C23C7");
 		original.setAttribute("NM", 4);
 		
-		SoftClip.softClipBothEndsOfRead(record, basesToClip);
+		Clipping.softClipBothEndsOfRead(record, basesToClip);
 		assertEquals(readName, record.getReadName());
 		assertEquals(referenceName, record.getReferenceName());
 		assertEquals(flags, record.getFlags());
@@ -380,15 +380,6 @@ public class SoftClipTest {
 		for (int i = record.getAlignmentStart(); i < record.getAlignmentEnd(); i++){
 			assertEquals(original.getReadPositionAtReferencePosition(i), record.getReadPositionAtReferencePosition(i));
 		}
-	}
-	
-	@Test
-	public void sample(){
-		/* NS500217:348:HTW2FBGXY:1:21302:14243:3111	4	GL000248.1	39786	0	7M4I42M	*	0	0	
-		 * CGATCTGTATCGGCACCTTGGCCTCCCAAAGTGCTGGGATTACAGGCATGAGC	
-		 * EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE	
-		 * X0:i:2	X1:i:0	XA:Z:16,+75842244,8M4I41M,4;	MD:Z:7C41	XD:Z:48-91-Q11.2-Q43.4_53	XG:i:4	NM:i:5	XM:i:0	XO:i:2	XT:A:R
-		 * */
 	}
 	
 	@Test
@@ -433,7 +424,7 @@ public class SoftClipTest {
 		copy.setAttribute("NM", 6);
 		
 		int basesToClip = 2;
-		SoftClip.softClipBothEndsOfRead(record, basesToClip);
+		Clipping.softClipBothEndsOfRead(record, basesToClip);
 		assertEquals(readName, record.getReadName());
 		assertEquals(referenceName, record.getReferenceName());
 		assertEquals(flags, record.getFlags());
@@ -464,7 +455,7 @@ public class SoftClipTest {
 			File clippledSam = testFolder.newFile("clipped.sam");
 			String clippedSamFilename = clippledSam.getAbsolutePath();
 			String [] args = {"-n", String.valueOf(basesToClip), "-i", samToClip, "-o", clippedSamFilename};
-			SoftClip.main(args);
+			Clipping.main(args);
 			
 			SamInputResource bufferedSAMFile;
 			SamReader reader;
@@ -511,7 +502,7 @@ public class SoftClipTest {
 			File clippedSam = testFolder.newFile("clipped.sam");
 			String clippedSamFilename = clippedSam.getAbsolutePath();
 			String [] args = {"-n", "2", "-i", filename, "-o", clippedSamFilename, "-x", "10", "-s", "Lib2", "-s", "Lib3", "-y", "-0", "-t", "Lib4"};
-			SoftClip.main(args);
+			Clipping.main(args);
 			
 			// check clipping in new file
 			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(clippedSamFilename)));

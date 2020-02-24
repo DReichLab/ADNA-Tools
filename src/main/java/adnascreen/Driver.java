@@ -46,7 +46,12 @@ public class Driver {
 			SAMStats.main(remainingArgs);
 			break;
 		case "softclip":
-			SoftClip.main(remainingArgs);
+			Clipping.main(remainingArgs);
+			break;
+		case "hardclip":
+			remainingArgs = Arrays.copyOfRange(args, 0, args.length);
+			remainingArgs[0] = "hard";
+			Clipping.main(remainingArgs);
 			break;
 		case "assignreadgroups":
 			AssignReadGroups.main(remainingArgs);

@@ -37,7 +37,7 @@ import htsjdk.samtools.util.CigarUtil;
  * @author mmah
  *
  */
-public class SoftClip {
+public class Clipping {
 	private int defaultNumberOfBasesToClip;
 	private HashMap<String, Integer> clippingLengthByLibrary;
 	
@@ -47,7 +47,7 @@ public class SoftClip {
 	 * Options in the command line need to match those in addSoftClipCommandLineOptions
 	 * @param commandLine
 	 */
-	public SoftClip(CommandLine commandLine) {
+	public Clipping(CommandLine commandLine) {
 		defaultNumberOfBasesToClip = Integer.valueOf(commandLine.getOptionValue('n', "0"));
 		clippingLengthByLibrary = new HashMap<String, Integer>();
 		
@@ -106,15 +106,17 @@ public class SoftClip {
 		options.addRequiredOption("i", "input BAM", true, "Input BAM filename");
 		options.addRequiredOption("o", "output BAM", true, "Output BAM filename");
 		options.addOption("b", "BAM", false, "Use bam files for output");
+		options.addOption(null, "hard", false, "Hard clip bases. Use this for contammix, for example, which requires realignment");
 		addSoftClipCommandLineOptions(options);
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		String inputFilename = commandLine.getOptionValue('i');
 		String outputFilename = commandLine.getOptionValue('o');
 		boolean useBAM = commandLine.hasOption('b') || Driver.isBAMFilename(outputFilename);
+		boolean hardClip = commandLine.hasOption("hard");
 		
 		// clipping for command line specified libraries to handle separate UDG treatments 
-		SoftClip softClipLengths = new SoftClip(commandLine);
+		Clipping softClipLengths = new Clipping(commandLine);
 		
 		SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilename)));
 		try(
@@ -137,7 +139,10 @@ public class SoftClip {
 				try{
 					SAMRecord record = i.next();
 					int numberOfBasesToClip = softClipLengths.getClippingLength(record);				
-					softClipBothEndsOfRead(record, numberOfBasesToClip);
+					if(hardClip)
+						hardClipBothEndsOfRead(record, numberOfBasesToClip);
+					else
+						softClipBothEndsOfRead(record, numberOfBasesToClip);
 					
 					// very short reads may be entirely clipped, remove these from the data set
 					if(isNonEmptyRead(record)) {
@@ -193,10 +198,25 @@ public class SoftClip {
 	 * @param numberOfBasesToClip
 	 */
 	public static void softClipBothEndsOfRead(SAMRecord record, int numberOfBasesToClip){
+		clipBothEndsOfRead(record, numberOfBasesToClip, false);
+	}
+	
+	/**
+	 * Soft-clipped bases remain in record, which is what we normally want. 
+	 * For reverting back to fastq, however, we want to stop the soft-clipped bases from being reintroduced. 
+	 * For this purpose, hard clip bases at the ends of the read. 
+	 */
+	public static void hardClipBothEndsOfRead(SAMRecord record, int numberOfBasesToClip){
+		clipBothEndsOfRead(record, numberOfBasesToClip, true);
+	}
+		
+	public static void clipBothEndsOfRead(SAMRecord record, int numberOfBasesToClip, boolean hardClip){
 		int startingAlignmentPosition = record.getAlignmentStart();
 		Cigar startingCigar = record.getCigar();
 		char [] cigarUnrolled = CigarUtil.cigarArrayFromElements(startingCigar.getCigarElements() );
 		numberOfBasesToClip = Math.min(numberOfBasesToClip, cigarUnrolled.length);
+		
+		CigarOperator replacementCigarOperator = hardClip ? CigarOperator.HARD_CLIP : CigarOperator.SOFT_CLIP;
 		
 		int alignmentStartOffset = 0; // number of bases to move alignment start, and amount to change MD field
 		int endSideChange = 0; // modifies MD only
@@ -211,7 +231,9 @@ public class SoftClip {
 				alignmentStartOffset++;
 			}
 			if(startSide.consumesReadBases()) {
-				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
+				cigarUnrolled[n] = (char) CigarOperator.enumToCharacter(replacementCigarOperator);
+				if (hardClip)
+					hardClipped++;
 				clippedBases++;
 			}
 			else if (!startSide.equals(CigarOperator.SOFT_CLIP)){
@@ -239,10 +261,12 @@ public class SoftClip {
 				endSideChange++;
 			}
 			if(endSide.consumesReadBases()) {
-				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
+				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(replacementCigarOperator);
+				if (hardClip)
+					hardClipped++;
 				clippedBases++;
 			}
-			else if (!endSide.equals(CigarOperator.SOFT_CLIP)){
+			else {
 				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.HARD_CLIP);
 				hardClipped++;
 			}
@@ -255,6 +279,16 @@ public class SoftClip {
 				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.HARD_CLIP);
 			else
 				cigarUnrolled[cigarUnrolled.length - n - 1] = (char) CigarOperator.enumToCharacter(CigarOperator.SOFT_CLIP);
+		}
+		
+		// remove hard clipped query bases from the base and quality strings
+		if(hardClip) {
+			String qualities = record.getBaseQualityString();
+			String shortenedQualities = qualities.substring(numberOfBasesToClip, qualities.length() - numberOfBasesToClip);
+			record.setBaseQualityString(shortenedQualities);
+			String bases = record.getReadString();
+			String shortenedBases = bases.substring(numberOfBasesToClip, bases.length() - numberOfBasesToClip);
+			record.setReadString(shortenedBases);
 		}
 		
 		record.setAlignmentStart(startingAlignmentPosition + alignmentStartOffset);
