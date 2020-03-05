@@ -317,7 +317,7 @@ public class IndexAndBarcodeScreener {
 	/**
 	 * Find the index/barcodes for each read pair, then submit to thread pool to merge
 	 * There are two separate cases:
-	 * 1. index reads are set at command line
+	 * 1. index reads are set at command line (i5Label and i7Label non-null)
 	 * 2. index reads are read from fastq
 	 * @param pool
 	 * @param resultsQueue
@@ -344,7 +344,7 @@ public class IndexAndBarcodeScreener {
 			}
 			try(
 					FileInputStream r1File = new FileInputStream(r1Filename);
-					FileInputStream r2File = new FileInputStream(r1Filename);
+					FileInputStream r2File = new FileInputStream(r2Filename);
 
 					FastqReader r1Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r1File))));
 					FastqReader r2Reader = new FastqReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(r2File))));
