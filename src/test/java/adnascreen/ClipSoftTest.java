@@ -547,4 +547,29 @@ public class ClipSoftTest {
 			fail();
 		}
 	}
+	
+	// This is a read at the end of the a reference sequence. When it is clipped, there is no aligned data anymore. 
+	@Test
+	public void clipPastEnd() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String filename = classLoader.getResource("end_clipping.sam").getPath();
+		try {			
+			// check clipping in new file
+			SamInputResource bufferedSAMFile = SamInputResource.of(new BufferedInputStream(new FileInputStream(filename)));
+			SamReader reader = SamReaderFactory.makeDefault().open(bufferedSAMFile);
+			SAMRecordIterator i = reader.iterator();
+			assertTrue(i.hasNext());
+			
+			while(i.hasNext()){
+				SAMRecord record = i.next();
+				assertNull(record.isValid());
+				assertTrue(Clipping.isNonEmptyRead(record));
+				int numberOfBasesToClip = 2;
+				Clipping.softClipBothEndsOfRead(record, numberOfBasesToClip);
+				assertFalse(Clipping.isNonEmptyRead(record));
+			}
+		} catch (IOException e) {
+			fail();
+		}
+	}
 }

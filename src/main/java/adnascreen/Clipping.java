@@ -23,6 +23,7 @@ import htsjdk.samtools.SAMFileWriterFactory;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
+import htsjdk.samtools.SAMSequenceRecord;
 import htsjdk.samtools.SAMValidationError;
 import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
@@ -95,9 +96,17 @@ public class Clipping {
 	}
 	
 	// non-empty reads have at least one (mis)match
+	// and must start before the end of the reference sequence
 	public static boolean isNonEmptyRead(SAMRecord record) {
 		Cigar cigar = record.getCigar();
-		return cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH);
+		boolean hasMatch = cigar.containsOperator(CigarOperator.MATCH_OR_MISMATCH);
+		
+		int referencePosition = record.getAlignmentStart();
+		String referenceName = record.getReferenceName();
+		SAMSequenceRecord sq = record.getHeader().getSequence(referenceName);
+		boolean hasData = referencePosition > 0 && referencePosition <= sq.getSequenceLength();
+				
+		return hasMatch && hasData;
 	}
 	
 	public static void main(String [] args) throws ParseException, IOException{
