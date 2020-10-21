@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -116,7 +117,7 @@ public class SampleSetsCounter {
 		});
 	}
 	
-	public String toStringSorted(final String label){
+	protected Stream<Map.Entry<String, SampleCounter>> getSetKeysStream(String label){
 		// sort by descending count in this label
 		Stream<Map.Entry<String, SampleCounter>> sortedByCount = sets.entrySet().stream().sorted(
 				new Comparator<Map.Entry<String, SampleCounter>>(){
@@ -126,6 +127,11 @@ public class SampleSetsCounter {
 						return a_count.compareTo(b_count);
 					}
 				}.reversed());
+		return sortedByCount;
+	}
+	
+	public String toStringSorted(final String label){
+		Stream<Map.Entry<String, SampleCounter>> sortedByCount = getSetKeysStream(label);
 		// convert this sorted stream into a string
 		StringBuilder builder = new StringBuilder();
 		builder.append(raw);

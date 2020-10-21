@@ -5,6 +5,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -36,6 +37,40 @@ public class DemultiplexSAM {
 	public static final String DEMULTIPLEXED = "demultiplexed";
 	public static final String duplicatesSAMTag = "XD";
 	
+	/**
+	 * Add the numTopSamples from a statistics file to the queue of files to be opened for output. 
+	 * Each of these must have at least minimumReads. 
+	 * @param statisticsFilename
+	 * @param numTopSamples
+	 * @param minimumReads
+	 * @param thresholdReads
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static Queue<IndexAndBarcodeKey> selectTopSamples(String statisticsFilename, int numTopSamples, int minimumReads, int thresholdReads) throws FileNotFoundException, IOException {
+		Queue<IndexAndBarcodeKey> topOutputFiles = new LinkedList<IndexAndBarcodeKey>();
+		File statisticsFile = new File(statisticsFilename);
+		try(BufferedReader reader = new BufferedReader(new FileReader(statisticsFile))){
+			Long.valueOf(reader.readLine());
+			int n = 0;
+			String entryLine = null;
+			while((entryLine = reader.readLine()) != null) {
+				String [] fields = entryLine.split("\t", 2);					
+				String keyString = fields[0]; 
+				String keyValuePairs = fields[1];
+				
+				SampleCounter counts = new SampleCounter(keyValuePairs);
+				long rawCount = counts.get(IndexAndBarcodeScreener.RAW);
+				if ( (n++ < numTopSamples || ((thresholdReads >= 0) && (rawCount >= thresholdReads) ) )
+						&& (rawCount >= minimumReads)){
+					IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
+					topOutputFiles.add(key);
+				}
+			}
+		}
+		return topOutputFiles;
+	}
+	
 	public static void main(String [] args) throws IOException, ParseException {
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
@@ -49,6 +84,8 @@ public class DemultiplexSAM {
 		options.addOption(null, "bufferSize", true, "Output file buffer size for performance");
 		options.addOption("c", "compression", true, "BAM compression level for htsjdk 0-9 default 5");
 		options.addOption("null", "async", false, "Use asynchronous threading for output");
+		options.addOption("t", "thresholdReads", true, "Threshold number of reads to trigger processing.");
+		options.addOption("o", "outputDirectory", true, "Directory to use for output files");
 		
 		CommandLine commandLine	= parser.parse(options, args);
 		
@@ -62,6 +99,8 @@ public class DemultiplexSAM {
 		String fileExtension = useBAM ? ".bam" : ".sam";
 		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
 		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
+		int thresholdReads = Integer.valueOf(commandLine.getOptionValue("thresholdReads", "-1"));
+		String outputDirectory = commandLine.getOptionValue("outputDirectory", ".");
 		
 		Queue<IndexAndBarcodeKey> outputFilesAll = new LinkedList<IndexAndBarcodeKey>();
 		
@@ -93,34 +132,9 @@ public class DemultiplexSAM {
 		// read statistics file with top keys
 		// open a SAM/BAM file for each key for demultiplexing its data
 		String statisticsFilename = commandLine.getOptionValue('s');
-		File statisticsFile = new File(statisticsFilename);
-		try(BufferedReader reader = new BufferedReader(new FileReader(statisticsFile))){
-			Long.valueOf(reader.readLine());
-			for(int n = 0; n < numTopSamples; n++){
-				String entryLine = reader.readLine();
-				if(entryLine != null) {
-					String [] fields = entryLine.split("\t");
-					String keyString = fields[0];
-
-					// locate the raw label and its count
-					int rawIndex = 1;
-					while(rawIndex < fields.length && !fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
-						rawIndex += 2;
-					}
-
-					if(rawIndex < fields.length && fields[rawIndex].equals(IndexAndBarcodeScreener.RAW)){
-						long rawCount = Long.valueOf(fields[rawIndex + 1]);
-						if(rawCount >= minimumReads){
-							IndexAndBarcodeKey key = new IndexAndBarcodeKey(keyString);
-							outputFilesAll.add(key);
-						}
-					}
-				}
-				else { // entryLine is null, which means we have reached the end of the file
-					break;
-				}
-			}
-		}
+		Queue<IndexAndBarcodeKey> topOutputFiles = selectTopSamples(statisticsFilename, numTopSamples, minimumReads, thresholdReads);
+		outputFilesAll.addAll(topOutputFiles);
+		
 		System.err.println("Outputting " + outputFilesAll.size() + " files");
 		
 		// we write barcode sequences into reads to mark duplicates
@@ -128,6 +142,7 @@ public class DemultiplexSAM {
 		if(barcodeFilename != null)
 			barcodes.loadFile(barcodeFilename);
 		
+		File statisticsFile = new File(statisticsFilename);
 		SampleSetsCounter statistics = new SampleSetsCounter(statisticsFile);
 		
 		while(outputFilesAll.size() > 0) {
@@ -193,7 +208,8 @@ public class DemultiplexSAM {
 								SAMFileWriter output = outputFilesConcurrent.get(keyFlattened);
 								if(output == null){ // open new file, if none exists for this key
 									String outputFilename = (keyFlattened.toString() + fileExtension).replace(':', '-'); // Cromwell chokes on files with ':'
-									BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename), bufferSize);
+									String outputPath = outputDirectory + "/" + outputFilename;
+									BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputPath), bufferSize);
 									if(useBAM){
 										output = outputFileFactory.makeBAMWriter(header, false, outputFile);
 									} else {
