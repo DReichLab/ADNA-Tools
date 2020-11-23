@@ -11,7 +11,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.nio.CharBuffer;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.GZIPInputStream;
@@ -201,5 +202,125 @@ public class MergeAndTrim {
 		} catch (IOException | ParseException | InterruptedException | ExecutionException e) {
 			fail();
 		}
+	}
+	
+	// If flowcell 
+	@Test(expected = ExecutionException.class)
+	public void fastqFlowcellMismatch() throws IOException, ParseException, InterruptedException, ExecutionException {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String barcodeFilename = classLoader.getResource("Barcodes_5-7bp").getPath();
+		String i5Filename = classLoader.getResource("i5").getPath();
+		String i7Filename = classLoader.getResource("i7").getPath();
+
+		String r1Filename = classLoader.getResource("bad_fastq_read_group/1.fastq.gz").getPath();
+		String r2Filename = classLoader.getResource("bad_fastq_read_group/2.fastq.gz").getPath();
+
+		List<String> args = new LinkedList<String>();
+		args.add("--i5-indices");
+		args.add(i5Filename);
+		args.add("--i7-indices");
+		args.add(i7Filename);
+		args.add("--barcodes");
+		args.add(barcodeFilename);
+		args.add("--fixed-i5");
+		args.add("CGAATAGA");
+		args.add("--fixed-i7");
+		args.add("AGTCTGGA");
+
+		args.add(r1Filename);
+		args.add(r2Filename);
+
+		String parentDirectory = tempFolder.getRoot().toString();
+		String outputRoot = parentDirectory + "/test";
+		args.add(outputRoot);
+
+		String [] args_array = new String[args.size()];
+		int n = 0;
+		for (String arg : args){
+			args_array[n++] = arg;
+		}
+
+		IndexAndBarcodeScreener.main(args_array);
+	}
+	
+	// If fastq files for a sample are demultiplexed, then we may have more than one flowcell lane in the same fastq
+	@Test
+	public void multipleFlowcellLanes() throws Exception {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String barcodeFilename = classLoader.getResource("Barcodes_5-7bp").getPath();
+		String i5Filename = classLoader.getResource("i5").getPath();
+		String i7Filename = classLoader.getResource("i7").getPath();
+
+		String r1Filename = classLoader.getResource("fastq_multiple_lanes/1.fastq.gz").getPath();
+		String r2Filename = classLoader.getResource("fastq_multiple_lanes/2.fastq.gz").getPath();
+
+		List<String> args = new LinkedList<String>();
+		args.add("--i5-indices");
+		args.add(i5Filename);
+		args.add("--i7-indices");
+		args.add(i7Filename);
+		args.add("--barcodes");
+		args.add(barcodeFilename);
+		args.add("--fixed-i5");
+		args.add("CGAATAGA");
+		args.add("--fixed-i7");
+		args.add("AGTCTGGA");
+		args.add("--read-group-file");
+		String readGroupFilename = tempFolder.newFile("readGroup").getPath();
+		args.add(readGroupFilename);
+		args.add("--disable-read-group-lane-check");
+
+		args.add(r1Filename);
+		args.add(r2Filename);
+
+		String parentDirectory = tempFolder.getRoot().toString();
+		String outputRoot = parentDirectory + "/test";
+		args.add(outputRoot);
+
+		String [] args_array = new String[args.size()];
+		int n = 0;
+		for (String arg : args){
+			args_array[n++] = arg;
+		}
+
+		IndexAndBarcodeScreener.main(args_array);
+	}
+	
+	@Test(expected = IllegalStateException.class)
+	public void multipleFlowcellLanesWithFlowcellLaneCheck() throws Exception {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String barcodeFilename = classLoader.getResource("Barcodes_5-7bp").getPath();
+		String i5Filename = classLoader.getResource("i5").getPath();
+		String i7Filename = classLoader.getResource("i7").getPath();
+
+		String r1Filename = classLoader.getResource("fastq_multiple_lanes/1.fastq.gz").getPath();
+		String r2Filename = classLoader.getResource("fastq_multiple_lanes/2.fastq.gz").getPath();
+
+		List<String> args = new LinkedList<String>();
+		args.add("--i5-indices");
+		args.add(i5Filename);
+		args.add("--i7-indices");
+		args.add(i7Filename);
+		args.add("--barcodes");
+		args.add(barcodeFilename);
+		args.add("--fixed-i5");
+		args.add("CGAATAGA");
+		args.add("--fixed-i7");
+		args.add("AGTCTGGA");
+
+		args.add(r1Filename);
+		args.add(r2Filename);
+
+		String parentDirectory = tempFolder.getRoot().toString();
+		String outputRoot = parentDirectory + "/test";
+		args.add(outputRoot);
+
+		String [] args_array = new String[args.size()];
+		int n = 0;
+		for (String arg : args){
+			args_array[n++] = arg;
+		}
+
+		IndexAndBarcodeScreener.main(args_array);
 	}
 }

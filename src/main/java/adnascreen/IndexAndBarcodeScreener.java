@@ -62,7 +62,8 @@ public class IndexAndBarcodeScreener {
 	
 	private int numOutputFiles = 25;
 	private float barcodeToNoBarcodeThreshold = 0.05f;
-	private String readGroupFilename; 
+	private String readGroupFilename;
+	private boolean readGroupCheck = true;
 	
 	private BarcodeMatcher i5Indices;
 	private BarcodeMatcher i7Indices;
@@ -133,8 +134,8 @@ public class IndexAndBarcodeScreener {
 				if(readGroup == null){
 					readGroup = mergeResult.readGroup;
 				} else { // read groups are expected to match for all reads in lane
-					if(!readGroup.equals(mergeResult.readGroup)){
-						throw new IllegalStateException("FASTQ read group mismatch");
+					if(readGroupCheck && !readGroup.equals(mergeResult.readGroup)){
+						throw new IllegalStateException("FASTQ read group mismatch " + readGroup + " " + mergeResult.readGroup);
 					}
 				}
 				// output to file and more statistics recording
@@ -163,9 +164,9 @@ public class IndexAndBarcodeScreener {
 	public static void main(String []args) throws IOException, ParseException, InterruptedException, ExecutionException{
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
-		options.addRequiredOption("i", "i5-indices", true, 
+		options.addRequiredOption(null, "i5-indices", true, 
 				"File containing one valid i5 index sets per line");
-		options.addRequiredOption("j", "i7-indices", true, 
+		options.addRequiredOption(null, "i7-indices", true, 
 				"File containing one valid i7 index sets per line");
 		options.addRequiredOption("b", "barcodes", true, 
 				"File containing one valid barcodes sets per line with ':'-delimited elements");
@@ -184,6 +185,8 @@ public class IndexAndBarcodeScreener {
 		options.addOption("z", "positive-oligo", true, "Provide count for reads matching provided positive oligo sequence");
 		options.addOption("y", "reverse-complement-i5", false, "Whether i5 index should be reverse complemented (NextSeq is not)");
 		options.addOption(null, "threads", true, "Number of threads for thread pool");
+		options.addOption(null, "disable-flowcell-lane-check", false, 
+				"Disable check that all reads come from the lane flowcell lane. Use this when fastq is demultiplexed from multiple flowcell lanes.");
 		
 		options.addOption(null, "fixed-i5", true, "Assume all fragments have this i5 sequence label");
 		options.addOption(null, "fixed-i7", true, "Assume all fragments have this i7 sequence label");
@@ -206,6 +209,8 @@ public class IndexAndBarcodeScreener {
 		screener.setNumOutputFiles(Integer.valueOf(commandLine.getOptionValue('n', "25")));
 		screener.setBarcodeToNoBarcodeThreshold(Float.valueOf(commandLine.getOptionValue("barcode-threshold", "0.05")));
 		screener.setReadGroupFilename(readGroupFilename);
+		if(commandLine.hasOption("disable-flowcell-lane-check"))
+			screener.setReadGroupCheck(false);
 		
 		screener.setReverseComplementI5(commandLine.hasOption('y'));
 		
@@ -297,7 +302,9 @@ public class IndexAndBarcodeScreener {
 					output.updateCountersAndWriteMergeToFile(mergeResult);
 				} catch (ExecutionException e) {
 					System.err.println(e);
-					System.exit(1);
+					pool.shutdownNow();
+					output.cleanup();
+					throw e;
 				}
 			}
 		}
@@ -699,5 +706,13 @@ public class IndexAndBarcodeScreener {
 
 	public void setPrintStream(OutputStream stream) {
 		this.printStream = new PrintStream(stream);
+	}
+
+	public boolean getReadGroupCheck() {
+		return readGroupCheck;
+	}
+
+	public void setReadGroupCheck(boolean readGroupCheck) {
+		this.readGroupCheck = readGroupCheck;
 	}
 }
