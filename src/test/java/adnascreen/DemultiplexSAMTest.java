@@ -3,6 +3,7 @@ package adnascreen;
 import static org.junit.Assert.*;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -213,6 +214,14 @@ CCGGATG_AATAAGC_CCTTACG:GGAACGT:TTCCGTA:AAGGTAC_TTGTCAG:AATAGCT:CCACTGA:GGCGATC	
 			}
 			args.add("--outputDirectory");
 			args.add(parentDirectory);
+			
+			File stdoutFile = testFolder.newFile("stdout");
+			args.add("--stdoutFile");
+			args.add(stdoutFile.getAbsolutePath());
+			File stderrFile = testFolder.newFile("stderr");
+			args.add("--stderrFile");
+			args.add(stderrFile.getAbsolutePath());
+			
 			args.add(filename_bam1);
 			args.add(filename_bam2);
 			

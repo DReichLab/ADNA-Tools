@@ -9,6 +9,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -87,6 +88,9 @@ public class DemultiplexSAM {
 		options.addOption("t", "thresholdReads", true, "Threshold number of reads to trigger processing.");
 		options.addOption("o", "outputDirectory", true, "Directory to use for output files");
 		
+		options.addOption(null, "stdoutFile", true, "Use this file for stdout");
+		options.addOption(null, "stderrFile", true, "Use this file for stderr");
+		
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		int numTopSamples = Integer.valueOf(commandLine.getOptionValue('n', "1000"));
@@ -101,6 +105,11 @@ public class DemultiplexSAM {
 		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
 		int thresholdReads = Integer.valueOf(commandLine.getOptionValue("thresholdReads", "-1"));
 		String outputDirectory = commandLine.getOptionValue("outputDirectory", ".");
+		
+		String stdoutFilename = commandLine.getOptionValue("stdoutFile", null);
+		PrintStream stdout = (stdoutFilename == null) ? System.out : new PrintStream(stdoutFilename);
+		String stderrFilename = commandLine.getOptionValue("stderrFile", null);
+		PrintStream stderr = (stderrFilename == null) ? System.err : new PrintStream(stderrFilename);
 		
 		Queue<IndexAndBarcodeKey> outputFilesAll = new LinkedList<IndexAndBarcodeKey>();
 		
@@ -123,7 +132,7 @@ public class DemultiplexSAM {
 						outputFilesAll.add(key);
 					}
 					catch(Exception e) {
-						System.err.println(e.toString());
+						stderr.println(e.toString());
 					}
 				}
 			}
@@ -135,7 +144,7 @@ public class DemultiplexSAM {
 		Queue<IndexAndBarcodeKey> topOutputFiles = selectTopSamples(statisticsFilename, numTopSamples, minimumReads, thresholdReads);
 		outputFilesAll.addAll(topOutputFiles);
 		
-		System.err.println("Outputting " + outputFilesAll.size() + " files");
+		stderr.println("Outputting " + outputFilesAll.size() + " files");
 		
 		// we write barcode sequences into reads to mark duplicates
 		BarcodeMatcher barcodes = new BarcodeMatcher();
@@ -221,13 +230,13 @@ public class DemultiplexSAM {
 								output.addAlignment(record);
 							}
 						} catch (SAMFormatException e){
-							System.err.print(filename + "\t");
-							System.err.println(e);
+							stderr.print(filename + "\t");
+							stderr.println(e);
 							// ignore this record and continue to the next
 						} catch (Exception e){
-							System.err.print(filename + "\t");
-							System.err.println(e);
-							e.printStackTrace(System.err);
+							stderr.print(filename + "\t");
+							stderr.println(e);
+							e.printStackTrace(stderr);
 						}
 					}
 				}
@@ -240,6 +249,8 @@ public class DemultiplexSAM {
 			}
 			outputFilesConcurrent.clear();
 		}
-		System.out.println(statistics.toStringSorted(IndexAndBarcodeScreener.RAW));
+		stdout.println(statistics.toStringSorted(IndexAndBarcodeScreener.RAW));
+		stdout.close();
+		stderr.close();
 	}
 }
