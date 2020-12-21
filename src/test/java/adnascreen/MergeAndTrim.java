@@ -268,7 +268,7 @@ public class MergeAndTrim {
 		args.add("--read-group-file");
 		String readGroupFilename = tempFolder.newFile("readGroup").getPath();
 		args.add(readGroupFilename);
-		args.add("--disable-read-group-lane-check");
+		args.add("--disable-flowcell-lane-check");
 
 		args.add(r1Filename);
 		args.add(r2Filename);
