@@ -43,7 +43,7 @@ public class AssignReadGroups {
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
 		options.addRequiredOption("i", "input-filename", true, "input SAM/BAM filename");
-		options.addRequiredOption("o", "output-filename", true, "input SAM/BAM filename");
+		options.addRequiredOption("o", "output-filename", true, "output SAM/BAM filename");
 		options.addRequiredOption("s", "sample", true, "sample ID");
 		options.addOption("b", "BAM", false, "Output bam file");
 		options.addOption("x", "label", true, "");
