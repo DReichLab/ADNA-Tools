@@ -36,6 +36,10 @@ public class DuplicatesTagRewrite {
 		Options options = new Options();
 		options.addRequiredOption("i", "input-filename", true, "input SAM/BAM filename");
 		options.addRequiredOption("o", "output-filename", true, "output SAM/BAM filename");
+		// Ultima wrote barcodes to separate tags, so adding an option to write
+		// existing tags into deduplication tag
+		options.addOption("l", "p5-barcode-tag", true, "Tag with p5 barcode to copy into deduplicating tag");
+		options.addOption("k", "p7-barcode-tag", true, "Tag with p7 barcode to copy into deduplicating tag");
 		options.addOption("b", "BAM", false, "Output bam file");
 		
 		CommandLine commandLine	= parser.parse( options, args );
@@ -54,16 +58,31 @@ public class DuplicatesTagRewrite {
 			SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
 			BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
 			if(useBAM){
-				output = outputFileFactory.makeBAMWriter(header, false, outputFile);
+				output = outputFileFactory.makeBAMWriter(header, true, outputFile);
 			} else {
-				output = outputFileFactory.makeSAMWriter(header, false, outputFile);
+				output = outputFileFactory.makeSAMWriter(header, true, outputFile);
 			}
+			
+			String p5_barcode_tag = commandLine.getOptionValue("p5-barcode-tag");
+			String p7_barcode_tag = commandLine.getOptionValue("p7-barcode-tag");
 
 			SAMRecordIterator i = reader.iterator();
 			while(i.hasNext()){
 				// iterate through alignments
-				SAMRecord record = i.next(); 
-				String deduplicationCriterion = "" + IndexAndBarcodeKey.FIELD_SEPARATOR + IndexAndBarcodeKey.FIELD_SEPARATOR + record.getReadLength();
+				SAMRecord record = i.next();
+				StringBuilder builder = new StringBuilder();
+				if (p5_barcode_tag != null) {
+					String p5_barcode = record.getStringAttribute(p5_barcode_tag);
+					builder.append(p5_barcode);
+				}
+				builder.append(IndexAndBarcodeKey.FIELD_SEPARATOR);
+				if (p7_barcode_tag != null) {
+					String p7_barcode = record.getStringAttribute(p7_barcode_tag);
+					builder.append(p7_barcode);
+				}
+				builder.append(IndexAndBarcodeKey.FIELD_SEPARATOR);
+				builder.append(record.getReadLength());
+				String deduplicationCriterion = builder.toString();
 				record.setAttribute(DemultiplexSAM.duplicatesSAMTag, deduplicationCriterion);
 				output.addAlignment(record);
 			}

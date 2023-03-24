@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.harvard.hms.reichlab</groupId>
   <artifactId>adnascreen</artifactId>
-  <version>1.11.2-SNAPSHOT</version>
+  <version>1.11.3-SNAPSHOT</version>
   <name>Ancient DNA Tools</name>
   <properties>
    <maven.compiler.source>1.8</maven.compiler.source>
@@ -22,7 +22,7 @@
 	<dependency>
 		<groupId>com.github.samtools</groupId>
 		<artifactId>htsjdk</artifactId>
-		<version>2.16.1</version>
+		<version>3.0.5</version>
 	</dependency>
 	<dependency>
 		<groupId>org.apache.commons</groupId>
