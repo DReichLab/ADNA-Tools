@@ -61,6 +61,32 @@ public class MergeTests {
 	}
 	
 	@Test
+	public void duplicateAlignmentMinLength(){
+		// reads minus barcodes
+		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
+				"CTAGCATTACTTATATGATATGTCTCCATA",
+				"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+		
+		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, minResultLength, maxPositions,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
+		assertEquals(1, alignments.size());
+		int offset = alignments.get(0);
+		assertEquals(0, offset);
+	}
+	
+	@Test
+	public void duplicateAlignmentBelowMinLength(){
+		// reads minus barcodes
+		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
+				"CTAGCATTACTTATATGATATGTCTCCAT",
+				"EEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
+		
+		List<Integer> alignments = Read.findBestAlignment(r1, r1, maxPenalty, minOverlapLength, minResultLength, maxPositions,
+				mismatchPenaltyHigh, mismatchPenaltyLow, mismatchBaseQualityThreshold);
+		assertEquals(0, alignments.size());
+	}
+	
+	@Test
 	public void testTrimTrailingN(){
 		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
 				"CNAGCATTANNnN",

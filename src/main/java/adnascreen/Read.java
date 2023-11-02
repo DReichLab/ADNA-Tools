@@ -162,7 +162,7 @@ public class Read {
 		// bbbbbbbbbbb
 		// starting position is for minimum required overlap
 		// ending position is for minimum result length
-		for(int offset = a.length() - minOverlapLength; b.length() + offset > minResultLength; offset--){
+		for(int offset = a.length() - minOverlapLength; b.length() + offset >= minResultLength; offset--){
 			int aOffset, bOffset;
 			if(offset >= 0){
 				aOffset = offset;

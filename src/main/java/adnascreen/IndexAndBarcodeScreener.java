@@ -283,7 +283,7 @@ public class IndexAndBarcodeScreener {
 				try {
 					// queue each paired read for merging
 					enqueuePairedReads(pool, resultsQueue, r1Filename, r2Filename, i1Filename, i2Filename, i5Label, i7Label);
-					return new Boolean(true);
+					return Boolean.TRUE;
 				} catch (IOException | InterruptedException e) {
 					throw(e);
 				} finally {
