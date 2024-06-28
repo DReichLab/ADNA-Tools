@@ -2,14 +2,9 @@ package adnascreen;
 
 import static org.junit.Assert.*;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class FASTQHeaderTests {
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-	
 	@Test
 	public void identical(){
 		String header = "@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0";
@@ -62,9 +57,8 @@ public class FASTQHeaderTests {
 	
 	@Test
 	public void bad_filteredField(){
-		thrown.expect(IllegalArgumentException.class);
-		new FASTQHeader("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:Z:0:0");
-		fail("Filtered field has invalid character but was accepted"); // should not reach here
+		// Filtered field has invalid character
+		assertThrows(IllegalArgumentException.class, () -> new FASTQHeader("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:Z:0:0"));
 	}
 	
 	@Test

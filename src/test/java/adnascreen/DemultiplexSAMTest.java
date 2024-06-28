@@ -202,12 +202,12 @@ CCGGATG_AATAAGC_CCTTACG:GGAACGT:TTCCGTA:AAGGTAC_TTGTCAG:AATAGCT:CCACTGA:GGCGATC	
 			args.add("-f");
 			args.add(barcodeFilename);
 			args.add("-n");
-			args.add((new Integer(numSamplesToOutput)).toString());
+			args.add((Integer.valueOf(numSamplesToOutput)).toString());
 			args.add("-m");
-			args.add((new Integer(maximumConcurrentOpenFiles)).toString());
+			args.add((Integer.valueOf(maximumConcurrentOpenFiles)).toString());
 			if (thresholdReads > 0) {
 				args.add("--thresholdReads");
-				args.add((new Integer(thresholdReads)).toString());
+				args.add((Integer.valueOf(thresholdReads)).toString());
 			}
 			if(useBAM) {
 				args.add("--BAM");

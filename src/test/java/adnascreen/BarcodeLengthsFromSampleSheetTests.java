@@ -2,20 +2,16 @@ package adnascreen;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.cli.ParseException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
-public class BarcodeLengthsFromSampleSheetTests {
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-	
+public class BarcodeLengthsFromSampleSheetTests {	
 	private Map<IndexAndBarcodeKey, Integer> setupTest() throws IOException, ParseException {
 		ClassLoader classLoader = getClass().getClassLoader();
 		String sampleSheetFilename = classLoader.getResource("example.index_barcode_keys").getPath();
@@ -100,14 +96,7 @@ public class BarcodeLengthsFromSampleSheetTests {
 		barcodeMatcher.addReferenceSet("ACAACC", "ACAACC");
 		barcodeMatcher.addReferenceSet("CGCCATG", "CGCCATG");
 		barcodeMatcher.addReferenceSet("CATAGGC:GCACTTG:TGCGAAT:ATGTCCA", "CATAGGC:GCACTTG:TGCGAAT:ATGTCCA");
-		try {
-			thrown.expect(IllegalStateException.class);
-			IndexAndBarcodeScreener.barcodeLengthsByIndexPair(sampleSheetFilename, barcodeMatcher);
-			fail("Invalid barcodes for index pair were accepted");
-		}
-		catch(IOException | ParseException e) {
-			fail("Wrong exception " + e.toString());
-		}
+		assertThrows(IllegalStateException.class, () -> IndexAndBarcodeScreener.barcodeLengthsByIndexPair(sampleSheetFilename, barcodeMatcher));
 	}
 	
 	@Test

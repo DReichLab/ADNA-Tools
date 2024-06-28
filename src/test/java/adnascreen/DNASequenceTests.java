@@ -2,14 +2,9 @@ package adnascreen;
 
 import static org.junit.Assert.*;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class DNASequenceTests {
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-	
 	@Test
 	public void reverseComplement_ACTGN(){
 		String input = "ACTGN";
@@ -28,7 +23,8 @@ public class DNASequenceTests {
 	public void exampleReverseComplement(){
 		DNASequence A = new DNASequence("ACTGCGTCTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC");
 		DNASequence r = A.reverseComplement();
-		//System.out.println(r);
+		DNASequence expected = new DNASequence("GTGCTCTTCCGATCTCGTTCACTTGGAGATTGTAATTGGTATGGAGACATATCATATAAGTAATGCTAGACGCAGT");
+		assertEquals(expected, r);
 	}
 	
 	@Test
@@ -47,10 +43,9 @@ public class DNASequenceTests {
 	
 	@Test
 	public void hammingLengthMismatch() {
-		thrown.expect(IllegalArgumentException.class);
 		DNASequence s1 = new DNASequence("TGACGCA");
 		DNASequence s2 = new DNASequence("ATCGTG");
-		s1.hammingDistance(s2);
+		assertThrows(IllegalArgumentException.class, () -> s1.hammingDistance(s2));
 	}
 	
 	@Test
@@ -62,8 +57,6 @@ public class DNASequenceTests {
 	
 	@Test
 	public void illegalCharacter(){
-		thrown.expect(IllegalArgumentException.class);
-		DNASequence s1 = new DNASequence("TGACGCX");
-		fail("DNASequence contains invalid character that was accepted " + s1.toString()); // should not reach here
+		assertThrows(IllegalArgumentException.class, () -> new DNASequence("TGACGCX"));
 	}
 }

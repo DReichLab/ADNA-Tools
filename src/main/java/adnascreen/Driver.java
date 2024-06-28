@@ -74,6 +74,9 @@ public class Driver {
 		case "barcodemover":
 			BarcodeMover.main(remainingArgs);
 			break;
+		case "alignmentcomparison":
+			AlignmentComparison.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}

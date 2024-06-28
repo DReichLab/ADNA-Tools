@@ -5,14 +5,9 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.util.List;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class BarcodeMatcherTests {
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-	
 	@Test
 	public void exactMatch(){
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
@@ -86,13 +81,10 @@ public class BarcodeMatcherTests {
 	
 	@Test
 	public void invalidReferenceSet(){
-		thrown.expect(IllegalArgumentException.class);
-		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG:A";
 		String label = "Q1";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.addReferenceSet(barcodeSet, label);
-		fail("Invalid barcode set was accepted");
+		assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.addReferenceSet(barcodeSet, label));
 	}
 	
 	@Test
@@ -131,42 +123,33 @@ public class BarcodeMatcherTests {
 	
 	@Test
 	public void duplicateLabel(){
-		thrown.expect(IllegalArgumentException.class);
-		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
 		String label = "Q1";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
 		barcodeMatcher.addReferenceSet(barcodeSet, label);
 		String barcodeSet2 = "ATCGACC";
-		barcodeMatcher.addReferenceSet(barcodeSet2, label);
-		
-		fail("Label was allowed twice");
+		// Label should not be allowed twice
+		assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.addReferenceSet(barcodeSet2, label));
 	}
 	
 	@Test
 	public void invalidLabelWithDelimiter(){
-		thrown.expect(IllegalArgumentException.class);
-		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG" + BarcodeMatcher.INDEX_DELIMITER;
 		String label = "Q1";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.addReferenceSet(barcodeSet, label);
-		fail("Illegal label was allowed");
+		assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.addReferenceSet(barcodeSet, label));
 	}
 	
 	@Test
 	public void duplicateBarcode(){
-		thrown.expect(IllegalArgumentException.class);
-		
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
 		String label1 = "Q1";
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
 		barcodeMatcher.addReferenceSet(barcodeSet, label1);
 		String barcodeSet2 = "ATCGATT"; // matches first barcode from above set
 		String label2 = "duplicate";
-		barcodeMatcher.addReferenceSet(barcodeSet2, label2);
 		
-		fail("Barcode was allowed twice");
+		assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.addReferenceSet(barcodeSet2, label2));
 	}
 	
 	@Test
@@ -234,15 +217,13 @@ public class BarcodeMatcherTests {
 	
 	@Test
 	public void illegalBarcodePairLabel(){
-		thrown.expect(IllegalArgumentException.class);
 		try{
 			ClassLoader classLoader = getClass().getClassLoader();
 			String filename = classLoader.getResource("Barcodes_5-7bp").getPath();
 
 			BarcodeMatcher barcodeMatcher = new BarcodeMatcher(filename, 1);
 			
-			barcodeMatcher.getBarcodePairLength("Q1" + IndexAndBarcodeKey.FIELD_SEPARATOR + "6-1");
-			fail();
+			assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.getBarcodePairLength("Q1" + IndexAndBarcodeKey.FIELD_SEPARATOR + "6-1"));
 		}
 		catch(IOException e){
 			fail();
@@ -330,12 +311,11 @@ public class BarcodeMatcherTests {
 	
 	@Test
 	public void badLabel() {
-		thrown.expect(IllegalArgumentException.class);
 		String barcodeSet = "ATCGATT:CAGTCAA:GCTAGCC:TGACTGG";
 		String label = "Q1" + BarcodeMatcher.INDEX_DELIMITER;
 		
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.addReferenceSet(barcodeSet, label);
+		assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.addReferenceSet(barcodeSet, label));
 	}
 	
 	@Test
@@ -357,9 +337,8 @@ public class BarcodeMatcherTests {
 	
 	@Test
 	public void badHammingDistance() {
-		thrown.expect(IllegalArgumentException.class);
 		BarcodeMatcher barcodeMatcher = new BarcodeMatcher();
-		barcodeMatcher.setMaxHammingDistance(-1);
+		assertThrows(IllegalArgumentException.class, () -> barcodeMatcher.setMaxHammingDistance(-1));
 	}
 	
 	@Test

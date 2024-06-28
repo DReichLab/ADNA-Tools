@@ -106,6 +106,8 @@ public class ClipHardTest {
 		String qualityString = "AAAAAEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAA";
 		
 		int readLength = 84;
+		assertEquals(readLength, readString.length());
+		assertEquals(readLength, qualityString.length());
 		
 		SAMRecord record = new SAMRecord(null);
 		record.setReadName(readName);

@@ -2,14 +2,9 @@ package adnascreen;
 
 import static org.junit.Assert.*;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class QualityTests {
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
-	
 	@Test
 	public void q33(){
 		assertEquals(0, QualitySequence.quality33Score('!'));
@@ -79,10 +74,9 @@ public class QualityTests {
 	
 	@Test
 	public void badBounds() {
-		thrown.expect(ArrayIndexOutOfBoundsException.class);
 		String quality = "AE/E<EEAE<E<E";
 		QualitySequence q = new QualitySequence(quality);
-		q.subsequence(0, 20);
+		assertThrows(ArrayIndexOutOfBoundsException.class, () -> q.subsequence(0, 20));
 	}
 	
 	@Test
