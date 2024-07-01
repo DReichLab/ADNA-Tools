@@ -72,6 +72,10 @@ public class AlignmentComparison {
 		return match ? MATCH : NO_MATCH;
 	}
 	
+	public static boolean isCramFilename(String filename) {
+		return filename.toLowerCase().endsWith(".cram");
+	}
+	
 	/**
 	 * 
 	 * @param x
@@ -149,13 +153,21 @@ public class AlignmentComparison {
 		
 		try {
 			// open files
-			outputReader = samReaderFactory.open(SamInputResource.of(new BufferedInputStream(new FileInputStream(finalOutputFilename))));
+			if(isCramFilename(finalOutputFilename)) {
+				outputReader = SamReaderFactory.makeDefault().referenceSource(reference).open(SamInputResource.of(new BufferedInputStream(new FileInputStream(finalOutputFilename))));
+			} else {
+				outputReader = samReaderFactory.open(SamInputResource.of(new BufferedInputStream(new FileInputStream(finalOutputFilename))));
+			}
 			SAMRecordIterator outputIterator = outputReader.iterator();
 			
 			SAMRecordIterator[] inputIterators = new SAMRecordIterator[inputFilenames.length];
 			SAMRecord[] currentInputRecords = new SAMRecord[inputFilenames.length];
 			for (int n = 0; n < inputFilenames.length; n++) {
-				inputReaders[n] = samReaderFactory.open(SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilenames[n]))));
+				if(isCramFilename(inputFilenames[n])) {
+					inputReaders[n] = SamReaderFactory.makeDefault().referenceSource(reference).open(SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilenames[n]))));
+				} else {
+					inputReaders[n] = samReaderFactory.open(SamInputResource.of(new BufferedInputStream(new FileInputStream(inputFilenames[n]))));
+				}
 				inputIterators[n] = inputReaders[n].iterator();
 				currentInputRecords[n] = inputIterators[n].next();
 			}
