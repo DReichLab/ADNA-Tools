@@ -2,6 +2,7 @@ package adnascreen;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -23,6 +24,7 @@ public class AlignmentComparisonTests {
 	String [] samFilenames = 
 			{"end_clipping.sam", "heng_shotgun.sam", "multi_lib.sam", 
 			 "shortReadForClipping.sam", "test.sam", "target-test.sam"};
+	String tags[] = {"MD", "XD", "RG", "NM"};
 	
 	public SAMRecord getRecord(String filename, int zeroBasedIndex) throws IOException {
 		ClassLoader classLoader = getClass().getClassLoader();
@@ -43,7 +45,6 @@ public class AlignmentComparisonTests {
 	public void testRecordReflexive() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		assertTrue(AlignmentComparison.compareFullAlignments(x, y, tags));
 	}
 	
@@ -51,7 +52,6 @@ public class AlignmentComparisonTests {
 	public void testRecordDuplicateFlag() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		x.setDuplicateReadFlag(true);
 		assertTrue(AlignmentComparison.compareFullAlignments(x, y, tags));
 	}
@@ -60,7 +60,6 @@ public class AlignmentComparisonTests {
 	public void testRecordVendorQualityFlagFail() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		x.setReadFailsVendorQualityCheckFlag(true);
 		assertFalse(AlignmentComparison.compareFullAlignments(x, y, tags));
 	}
@@ -68,7 +67,6 @@ public class AlignmentComparisonTests {
 	@Test public void testRecordBaseFail() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		byte[] bases = x.getReadBases();
 		bases[1] = 'T';
 		x.setReadBases(bases);
@@ -78,7 +76,6 @@ public class AlignmentComparisonTests {
 	@Test public void testRecordBaseQualityFail() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		byte[] qualities = x.getBaseQualities();
 		qualities[2] = 'A';
 		x.setBaseQualities(qualities);
@@ -88,7 +85,6 @@ public class AlignmentComparisonTests {
 	@Test public void testRecordXDFail() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		x.setAttribute("XD", "ATTGGCA_AAGCATC_40");
 		assertFalse(AlignmentComparison.compareFullAlignments(x, y, tags));
 	}
@@ -97,7 +93,6 @@ public class AlignmentComparisonTests {
 	public void testRecordMappingQualityFlag() throws IOException {
 		SAMRecord x = getRecord("multi_lib.sam", 0);
 		SAMRecord y = x.deepCopy();
-		String tags[] = {"MD", "XD", "RG", "NM"};
 		x.setMappingQuality(1);
 		assertFalse(AlignmentComparison.compareFullAlignments(x, y, tags));
 	}
@@ -124,7 +119,6 @@ public class AlignmentComparisonTests {
 	
 	@Test
 	public void testSAMFileReflexiveSingle() {
-		String[] tags = {"MD"};
 		for (String samFilename : samFilenames) {
 			SAMFileReflexive(samFilename, tags);
 		}
@@ -147,7 +141,6 @@ public class AlignmentComparisonTests {
 	
 	@Test
 	public void differentSAMFiles() {
-		String[] tags = {"MD"};
 		for (int x = 0; x < samFilenames.length; x++) {
 			for (int y = x+1; y < samFilenames.length; y++) {
 				differentSAM(samFilenames[x], samFilenames[y], tags);
@@ -160,15 +153,14 @@ public class AlignmentComparisonTests {
 		String samFilename1 = classLoader.getResource(filename1).getPath();
 		String samFilename2 = classLoader.getResource(filename2).getPath();
 		
-		String[] commandArray = new String[5];
-		commandArray[0] = "AlignmentComparison";
-		commandArray[1] = "-c";
-		commandArray[3] = "-i";
-		commandArray[2] = samFilename1;
-		commandArray[4] = samFilename2;
+		String[] commandArray = new String[4];
+		commandArray[0] = "-c";
+		commandArray[2] = "-i";
+		commandArray[1] = samFilename1;
+		commandArray[3] = samFilename2;
 		assertEquals(AlignmentComparison.NO_MATCH, AlignmentComparison.main(commandArray));
-		commandArray[2] = samFilename2;
-		commandArray[4] = samFilename1;
+		commandArray[1] = samFilename2;
+		commandArray[3] = samFilename1;
 		assertEquals(AlignmentComparison.NO_MATCH, AlignmentComparison.main(commandArray));
 	}
 	
@@ -187,7 +179,6 @@ public class AlignmentComparisonTests {
 		String samFilename1 = classLoader.getResource("test.sam").getPath();
 		String samFilename2 = classLoader.getResource("target-test.sam").getPath();
 		String[] inputs = new String[2];
-		String[] tags = new String[0];
 		// try both orders
 		inputs[0] = samFilename1;
 		inputs[1] = samFilename2;
@@ -206,8 +197,58 @@ public class AlignmentComparisonTests {
 		String samFilename2 = classLoader.getResource("alignment_comparison/multi_lib45.sam").getPath();
 		String merged = classLoader.getResource("multi_lib.sam").getPath();
 		String[] inputs = {samFilename1, samFilename2};
-		String[] tags = {"RG", "XD", "MD", "NM"};
 		
 		assertTrue(AlignmentComparison.compareAlignmentFiles(merged, inputs, tags, null));
+	}
+	
+	@Test
+	public void testMergeCommandLine() throws IOException, ParseException {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String samFilename1 = classLoader.getResource("alignment_comparison/multi_lib123.sam").getPath();
+		String samFilename2 = classLoader.getResource("alignment_comparison/multi_lib45.sam").getPath();
+		String merged = classLoader.getResource("multi_lib.sam").getPath();
+		
+		String[] commandArray = new String[9];
+		commandArray[0] = "-i";
+		commandArray[1] = samFilename1;
+		commandArray[2] = samFilename2;
+		commandArray[3] = "-c";
+		commandArray[4] = merged;
+		for (int i = 0; i  < tags.length; i++)
+			commandArray[i+5] = tags[i];
+		int result = AlignmentComparison.main(commandArray);
+		assertEquals(AlignmentComparison.MATCH, result);
+	}
+	
+	@Test
+	public void testNoInputsFail() {
+		String[] commandArray = new String[0];
+		assertThrows(org.apache.commons.cli.MissingOptionException.class, () -> AlignmentComparison.main(commandArray));
+	}
+	
+	@Test
+	public void testCheckOnlyNoInputsFail() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String merged = classLoader.getResource("multi_lib.sam").getPath();
+		
+		String[] commandArray = new String[2];
+		commandArray[0] = "-c";
+		commandArray[1] = merged;
+	
+		assertThrows(org.apache.commons.cli.MissingOptionException.class, () -> AlignmentComparison.main(commandArray));
+	}
+	
+	@Test
+	public void testNoCheckFail() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String samFilename1 = classLoader.getResource("alignment_comparison/multi_lib123.sam").getPath();
+		String samFilename2 = classLoader.getResource("alignment_comparison/multi_lib45.sam").getPath();
+		
+		String[] commandArray = new String[3];
+		commandArray[0] = "-i";
+		commandArray[1] = samFilename1;
+		commandArray[2] = samFilename2;
+	
+		assertThrows(org.apache.commons.cli.MissingOptionException.class, () -> AlignmentComparison.main(commandArray));
 	}
 }

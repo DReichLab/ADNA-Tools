@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -32,9 +33,12 @@ public class AlignmentComparison {
 	
 	public static int main(String[] args) throws IOException, ParseException{
 		CommandLineParser parser = new DefaultParser();
+		
+		Option inputFiles  = Option.builder("i").longOpt("input").required().hasArgs().desc("Input SAM/BAM/CRAM file(s). This program checks that all reads in the input files are present in the output file.").build();
+		
 		Options options = new Options();
 		options.addRequiredOption("c", "check", true, "SAM/BAM/CRAM file to check. This program checks that all reads are present in this file.");
-		options.addRequiredOption("i", "input", true, "Input SAM/BAM/CRAM file(s). This program checks that all reads in the input files are present in the output file.");
+		options.addOption(inputFiles);
 		options.addOption("r", "reference", true, "CRAM reference: if any cram files are used, the reference must be specified and the same for all CRAM files.");
 		CommandLine commandLine	= parser.parse(options, args);
 		
@@ -64,6 +68,7 @@ public class AlignmentComparison {
 		
 		String[] tagsToCheck = commandLine.getArgs();
 		boolean match = compareAlignmentFiles(checkFilename, inputFilenames, tagsToCheck, cramReference);
+		System.out.println("Match: " + match);
 		return match ? MATCH : NO_MATCH;
 	}
 	
@@ -172,13 +177,16 @@ public class AlignmentComparison {
 					}
 				}
 				if (!found) {
+					System.err.println("Not in inputs: " + toFind.toString());
 					return false;
 				}
 			}
 			// there should be no input records remaining
 			for (SAMRecord remaining : currentInputRecords) {
-				if (remaining != null)
+				if (remaining != null) {
+					System.err.println("Not in check: " + remaining.toString());
 					return false;
+				}
 			}
 			return true;
 		}
