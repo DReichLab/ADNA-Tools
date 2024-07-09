@@ -117,10 +117,14 @@ public class AlignmentComparison {
 			byte[] xQuality = x.getBaseQualities();
 			byte[] yQuality = y.getBaseQualities();
 			
-			if (xSequence.length != ySequence.length || xSequence.length != xQuality.length || xQuality.length != yQuality.length)
+			if (xSequence.length != ySequence.length || xQuality.length != yQuality.length)
 				return false;
 			for (int i = 0; i < xSequence.length; i++) {
-				if (xSequence[i] != ySequence[i] || xQuality[i] != yQuality[i])
+				if (xSequence[i] != ySequence[i])
+					return false;
+			}
+			for (int i = 0; i < xQuality.length; i++) {
+				if (xQuality[i] != yQuality[i])
 					return false;
 			}
 			
@@ -189,7 +193,12 @@ public class AlignmentComparison {
 					}
 				}
 				if (!found) {
-					System.err.println("Not in inputs: " + toFind.toString());
+					System.err.println("Not in inputs: " + toFind.getSAMString());
+					System.err.println("current inputs: ");
+					for (int n = 0; n < inputIterators.length; n++) {
+						String current = (currentInputRecords[n] == null) ? "" : currentInputRecords[n].getSAMString();
+						System.err.println("\t" + n + ": " + current);
+					}
 					return false;
 				}
 			}
