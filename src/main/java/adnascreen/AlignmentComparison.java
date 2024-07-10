@@ -3,6 +3,7 @@ package adnascreen;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -37,7 +38,7 @@ public class AlignmentComparison {
 		Option inputFiles  = Option.builder("i").longOpt("input").required().hasArgs().desc("Input SAM/BAM/CRAM file(s). This program checks that all reads in the input files are present in the output file.").build();
 		
 		Options options = new Options();
-		options.addRequiredOption("c", "check", true, "SAM/BAM/CRAM file to check. This program checks that all reads are present in this file.");
+		options.addRequiredOption("c", "check", true, "SAM/BAM/CRAM file to check. This program checks that all reads from inputs files are present in this file.");
 		options.addOption(inputFiles);
 		options.addOption("r", "reference", true, "CRAM reference: if any cram files are used, the reference must be specified and the same for all CRAM files.");
 		CommandLine commandLine	= parser.parse(options, args);
@@ -74,6 +75,17 @@ public class AlignmentComparison {
 	
 	public static boolean isCramFilename(String filename) {
 		return filename.toLowerCase().endsWith(".cram");
+	}
+	
+	public static void printSAMRecordFullTags(SAMRecord x, PrintStream out) {
+		if (x != null) {
+			out.print(x.getSAMString());
+			for(SAMRecord.SAMTagAndValue tag : x.getAttributes()) {
+				out.println(tag.tag + ": " + tag.value);
+			}
+		} else {
+			out.println("null");
+		}
 	}
 	
 	/**
@@ -117,29 +129,63 @@ public class AlignmentComparison {
 			byte[] xQuality = x.getBaseQualities();
 			byte[] yQuality = y.getBaseQualities();
 			
-			if (xSequence.length != ySequence.length || xQuality.length != yQuality.length)
+			if (xSequence.length != ySequence.length) {
+				System.err.println("base lengths");
 				return false;
-			for (int i = 0; i < xSequence.length; i++) {
-				if (xSequence[i] != ySequence[i])
-					return false;
 			}
-			for (int i = 0; i < xQuality.length; i++) {
-				if (xQuality[i] != yQuality[i])
+			for (int i = 0; i < xSequence.length; i++) {
+				if (xSequence[i] != ySequence[i]) {
+					System.err.println("sequence mismatch");
 					return false;
+				}
+			}
+			
+			if (xQuality.length != yQuality.length) {
+				// if the fragment is only one base pair, we don't care if there is a mismatch with quality because the read is irrelevant
+				if (xQuality.length > 1 && yQuality.length > 1) {
+					System.err.println("quality lengths");
+					return false;
+				}
+			} else {
+				for (int i = 0; i < xQuality.length; i++) {
+					if (xQuality[i] != yQuality[i]) {
+						System.err.println("quality mismatch");
+						return false;
+					}
+				}
 			}
 			
 			int flag_mask = 0xffff ^ SAMFlag.DUPLICATE_READ.intValue(); // exclude duplicate bit
-			if (!x.getReadName().equals(y.getReadName()) ||
-					((x.getFlags() & flag_mask) != (y.getFlags() & flag_mask)) ||
-					!x.getReferenceName().equals(y.getReferenceName()) ||
-					x.getAlignmentStart() != y.getAlignmentStart() ||
-					x.getMappingQuality() != y.getMappingQuality() ||
-					!x.getCigar().equals(y.getCigar())
-					)
+			if (!x.getReadName().equals(y.getReadName())){
+				System.err.println("read name mismatch");
 				return false;
+			}
+			if ((x.getFlags() & flag_mask) != (y.getFlags() & flag_mask)) {
+				System.err.println("flag mismatch");
+				return false;
+			}
+			if(!x.getReferenceName().equals(y.getReferenceName())) {
+				System.err.println("reference mismatch");
+				return false;
+			}
+			if(x.getAlignmentStart() != y.getAlignmentStart()) {
+				System.err.println("alignment mismatch");
+				return false;
+			}
+			if(x.getMappingQuality() != y.getMappingQuality()) {
+				System.err.println("mapping quality mismatch");
+				return false;
+			}
+			if(!x.getCigar().equals(y.getCigar())) {
+				System.err.println("cigar mismatch");
+				return false;
+			}
+
 			for (String tagToCheck : tagsToCheck) {
-				if (!checkTag(x, y, tagToCheck))
+				if (!checkTag(x, y, tagToCheck)) {
+					System.err.println("tag mismatch: " + tagToCheck);
 					return false;
+				}
 			}
 			return true;
 		} else if (x == null && y == null) {
@@ -193,11 +239,11 @@ public class AlignmentComparison {
 					}
 				}
 				if (!found) {
-					System.err.println("Not in inputs: " + toFind.getSAMString());
+					System.err.println("In to check but not in inputs: ");
+					printSAMRecordFullTags(toFind, System.err);
 					System.err.println("current inputs: ");
 					for (int n = 0; n < inputIterators.length; n++) {
-						String current = (currentInputRecords[n] == null) ? "" : currentInputRecords[n].getSAMString();
-						System.err.println("\t" + n + ": " + current);
+						printSAMRecordFullTags(currentInputRecords[n], System.err);
 					}
 					return false;
 				}
