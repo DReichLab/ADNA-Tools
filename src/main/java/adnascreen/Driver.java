@@ -77,6 +77,9 @@ public class Driver {
 		case "alignmentcomparison":
 			AlignmentComparison.main(remainingArgs);
 			break;
+		case "damagerestrict":
+			DamageRestrict.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}
