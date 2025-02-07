@@ -251,4 +251,26 @@ public class AlignmentComparisonTests {
 	
 		assertThrows(org.apache.commons.cli.MissingOptionException.class, () -> AlignmentComparison.main(commandArray));
 	}
+	
+	@Test
+	public void testDifferentReferenceDictionary() {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String samFilename1 = classLoader.getResource("alignment_comparison/multi_lib45.sam").getPath();
+		String samFilename2 = classLoader.getResource("alignment_comparison/multi_lib45_extraSeqDict.sam").getPath();
+		
+		String[] inputs = new String[1];
+		inputs[0] = samFilename2;
+		try {
+			assertFalse(AlignmentComparison.compareAlignmentFiles(samFilename1, inputs, tags, null));
+		} catch (IOException e) {
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testDifferentReferenceDictionaryCommandLine() throws IOException, ParseException {
+		String samFilename1 = "alignment_comparison/multi_lib45.sam";
+		String samFilename2 = "alignment_comparison/multi_lib45_extraSeqDict.sam";
+		differentSAMCommandLine(samFilename1, samFilename2);
+	}
 }

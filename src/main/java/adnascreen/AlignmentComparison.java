@@ -220,6 +220,10 @@ public class AlignmentComparison {
 				}
 				inputIterators[n] = inputReaders[n].iterator();
 				currentInputRecords[n] = inputIterators[n].next();
+				// check that reference is the same
+				if (!inputReaders[n].getFileHeader().getSequenceDictionary().equals(outputReader.getFileHeader().getSequenceDictionary())) {
+					return false;
+				}
 			}
 			
 			// each final output file record should appear in exactly one input file
