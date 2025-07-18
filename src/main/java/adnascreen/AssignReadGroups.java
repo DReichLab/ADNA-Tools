@@ -62,8 +62,9 @@ public class AssignReadGroups {
 		String label = commandLine.getOptionValue("label", "");
 		String dateString = commandLine.getOptionValue("date");
 		Date date = dateFormat.parse(dateString);
-		String library = commandLine.getOptionValue("library", null);
-		String sequencingCenter = commandLine.getOptionValue("sequencing-center", null);
+		String NULL = null;
+		String library = commandLine.getOptionValue("library", NULL);
+		String sequencingCenter = commandLine.getOptionValue("sequencing-center", NULL);
 		String sequencingPlatform = commandLine.getOptionValue("sequencing-platform", "ILLUMINA");
 		boolean lenient = commandLine.hasOption("lenient");
 		

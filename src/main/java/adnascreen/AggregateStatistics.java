@@ -23,8 +23,9 @@ public class AggregateStatistics {
 		CommandLine commandLine	= parser.parse(options, args);
 		
 		String sortField = commandLine.getOptionValue('s', IndexAndBarcodeScreener.RAW);
-		String keyString = commandLine.getOptionValue('k', null);
-		String label = commandLine.getOptionValue('l', null);
+		String NULL = null;
+		String keyString = commandLine.getOptionValue('k', NULL);
+		String label = commandLine.getOptionValue('l', NULL);
 		
 		// read statistics from set of files
 		SampleSetsCounter statistics = new SampleSetsCounter();

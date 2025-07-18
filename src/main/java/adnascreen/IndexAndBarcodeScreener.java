@@ -216,15 +216,16 @@ public class IndexAndBarcodeScreener {
 		
 		int numThreads = Integer.valueOf(commandLine.getOptionValue("threads", "1"));
 		
+		String NULL = null;
 		// optional specification of barcode lengths from index-barcode key file
-		String explicitIndexFile = commandLine.getOptionValue("index-barcode-keys", null);
+		String explicitIndexFile = commandLine.getOptionValue("index-barcode-keys", NULL);
 		if (explicitIndexFile != null) {
 			screener.setBarcodeLengthsFromSampleSheet(barcodeLengthsByIndexPair(explicitIndexFile, barcodes));
 		}
 		
 		// A previous pass through the data is needed to count the number of paired reads
 		// that demultiplex with barcodes
-		final String barcodeCountStatisticsFilename = commandLine.getOptionValue("barcode-count", null);
+		final String barcodeCountStatisticsFilename = commandLine.getOptionValue("barcode-count", NULL);
 		if(barcodeCountStatisticsFilename != null){
 			File barcodeCountStatisticsFile = new File(barcodeCountStatisticsFilename);
 			screener.setBarcodeCountStatistics(new SampleSetsCounter(barcodeCountStatisticsFile));
@@ -233,7 +234,7 @@ public class IndexAndBarcodeScreener {
 		// positive oligo
 		// count the number of appearances of this sequence
 		// This is for wetlab diagnostic purposes
-		String positiveOligoSequence = commandLine.getOptionValue("positive-oligo", null);
+		String positiveOligoSequence = commandLine.getOptionValue("positive-oligo", NULL);
 		if(positiveOligoSequence != null) {
 			screener.setPositiveOligo(positiveOligoSequence);
 		}

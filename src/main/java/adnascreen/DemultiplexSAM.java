@@ -101,14 +101,15 @@ public class DemultiplexSAM {
 		boolean useBAM = commandLine.hasOption('b');
 		boolean useAsyncThreads = commandLine.hasOption("async");
 		String fileExtension = useBAM ? ".bam" : ".sam";
-		String explicitIndexFile = commandLine.getOptionValue("explicit", null);
-		String barcodeFilename = commandLine.getOptionValue("barcodeFile", null);
+		String NULL = null;
+		String explicitIndexFile = commandLine.getOptionValue("explicit", NULL);
+		String barcodeFilename = commandLine.getOptionValue("barcodeFile", NULL);
 		int thresholdReads = Integer.valueOf(commandLine.getOptionValue("thresholdReads", "-1"));
 		String outputDirectory = commandLine.getOptionValue("outputDirectory", ".");
 		
-		String stdoutFilename = commandLine.getOptionValue("stdoutFile", null);
+		String stdoutFilename = commandLine.getOptionValue("stdoutFile", NULL);
 		PrintStream stdout = (stdoutFilename == null) ? System.out : new PrintStream(stdoutFilename);
-		String stderrFilename = commandLine.getOptionValue("stderrFile", null);
+		String stderrFilename = commandLine.getOptionValue("stderrFile", NULL);
 		PrintStream stderr = (stderrFilename == null) ? System.err : new PrintStream(stderrFilename);
 		
 		Queue<IndexAndBarcodeKey> outputFilesAll = new LinkedList<IndexAndBarcodeKey>();
