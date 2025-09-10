@@ -80,6 +80,9 @@ public class Driver {
 		case "damagerestrict":
 			DamageRestrict.main(remainingArgs);
 			break;
+		case "fastqfilter":
+			FASTQFilter.main(remainingArgs);
+			break;
 		default:
 			throw new IllegalArgumentException("Unknown program: " + command);
 		}

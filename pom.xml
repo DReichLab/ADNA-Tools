@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.harvard.hms.reichlab</groupId>
   <artifactId>adnatools</artifactId>
-  <version>2.1.1-SNAPSHOT</version>
+  <version>2.1.2-SNAPSHOT</version>
   <name>Ancient DNA Tools</name>
   <properties>
    <maven.compiler.source>1.8</maven.compiler.source>
