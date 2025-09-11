@@ -49,7 +49,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>adnascreen.Driver</mainClass>
+							<mainClass>adnatools.Driver</mainClass>
 							<addDefaultImplementationEntries>
 							true
 							</addDefaultImplementationEntries>
