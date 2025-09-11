@@ -7,10 +7,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import org.apache.commons.cli.ParseException;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import htsjdk.samtools.SAMRecord;
@@ -25,6 +29,23 @@ public class AlignmentComparisonTests {
 			{"end_clipping.sam", "heng_shotgun.sam", "multi_lib.sam", 
 			 "shortReadForClipping.sam", "test.sam", "target-test.sam"};
 	String tags[] = {"MD", "XD", "RG", "NM"};
+	
+	private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+	private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
+	private final PrintStream originalSystemOut = System.out;
+	private final PrintStream originalSystemErr = System.err;
+	
+	@Before
+	public void setUpStreams() {
+	    System.setOut(new PrintStream(outContent));
+	    System.setErr(new PrintStream(errContent));
+	}
+
+	@After
+	public void restoreStreams() {
+	    System.setOut(originalSystemOut);
+	    System.setErr(originalSystemErr);
+	}
 	
 	public SAMRecord getRecord(String filename, int zeroBasedIndex) throws IOException {
 		ClassLoader classLoader = getClass().getClassLoader();

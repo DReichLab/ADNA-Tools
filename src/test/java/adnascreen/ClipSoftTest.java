@@ -454,8 +454,8 @@ public class ClipSoftTest {
 		final int basesToClip = 20; // Clip more bases than are in a read
 		try {
 			// clip test file
-			File clippledSam = testFolder.newFile("clipped.sam");
-			String clippedSamFilename = clippledSam.getAbsolutePath();
+			File clippedSam = testFolder.newFile("clipped.sam");
+			String clippedSamFilename = clippedSam.getAbsolutePath();
 			String [] args = {"-n", String.valueOf(basesToClip), "-i", samToClip, "-o", clippedSamFilename};
 			Clipping.main(args);
 			
