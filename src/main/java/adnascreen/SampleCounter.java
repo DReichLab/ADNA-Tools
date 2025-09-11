@@ -26,7 +26,7 @@ public class SampleCounter {
 		this();
 		for(String label : other.orderedLabels){
 			MutableLong value = new MutableLong(other.get(label));
-			add(label, value.getValue());
+			add(label, value.longValue());
 		}
 	}
 	
@@ -63,7 +63,7 @@ public class SampleCounter {
 	public long get(String label){
 		MutableLong count = counters.get(label);
 		if(count != null){
-			return count.getValue();
+			return count.longValue();
 		}
 		return 0;
 	}

@@ -89,7 +89,7 @@ public class DuplicatesHistogram {
 	
 	private void updateHistogramWithCurrentStartPosition(HashMap<String, MutableInt> countsAtThisPosition) {
 		for(String key : countsAtThisPosition.keySet()) {
-			int depth = countsAtThisPosition.get(key).getValue();
+			int depth = countsAtThisPosition.get(key).intValue();
 			maximumDepth = Math.max(depth, maximumDepth);
 			if(!occurrencesByDepth.containsKey(depth)) {
 				occurrencesByDepth.put(depth, new MutableInt(0));
@@ -103,7 +103,7 @@ public class DuplicatesHistogram {
 		// populate histogram
 		int [] histogram = new int[maximumDepth];
 		for(int depth = 1; depth <= maximumDepth; depth++) {
-			histogram[depth-1] = occurrencesByDepth.getOrDefault(depth, new MutableInt(0)).getValue();
+			histogram[depth-1] = occurrencesByDepth.getOrDefault(depth, new MutableInt(0)).intValue();
 		}
 		return histogram;
 	}
