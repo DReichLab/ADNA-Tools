@@ -1,7 +1,6 @@
 package adnascreen;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,7 +9,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collections;
@@ -115,7 +113,7 @@ public class IndexAndBarcodeScreener {
 			for(int i = 0; i < numOutputFiles; i++){
 				// start counting from 1 for filenames
 				String outputFilename = String.format("%s_%03d.fastq.gz", outputFilenameRoot, i + 1);
-				fileOutputs[i] = new PrintWriter(new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)))));
+				fileOutputs[i] = new PrintWriter(new GZIPOutputStream(new FileOutputStream(outputFilename)));
 			}
 		}
 		
