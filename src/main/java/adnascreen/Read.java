@@ -11,11 +11,15 @@ import htsjdk.samtools.fastq.FastqRecord;
  *
  */
 public class Read {
-	private FASTQHeader header; // should probably not be a FASTQHeader, but something more generic
+	protected FASTQHeader header; // should probably not be a FASTQHeader, but something more generic
 	private DNASequence dna;
 	private QualitySequence quality;
 	
 	public Read(String header, String dna, String quality){
+		fromComponentStrings(header, dna, quality);
+	}
+	
+	protected void fromComponentStrings(String header, String dna, String quality){
 		if(header != null && header.length() > 0 && header.charAt(0) == '@')
 			this.header = new FASTQHeader(header);
 		else
@@ -46,6 +50,12 @@ public class Read {
 		this.header = new FASTQHeader(record.getReadName());
 		this.dna = new DNASequence(record.getReadString());
 		this.quality = new QualitySequence(record.getBaseQualityString());
+	}
+	
+	// a fastq record as a string
+	public Read(String s) {
+		String[] parts = s.split("\n");
+		fromComponentStrings(parts[0], parts[1], parts[3]); 
 	}
 	
 	@Override

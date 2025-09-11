@@ -111,15 +111,43 @@ public class MergeTests {
 	
 	@Test
 	public void MergedReadToString(){
-		Read r1 = new Read("@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0",
-				"CTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC",
-				"EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE");
-		IndexAndBarcodeKey key = new IndexAndBarcodeKey("1", "2",
-				"Q1", "Q2");
+		String name = "@NS500217:348:HTW2FBGXY:1:11101:22352:1064 1:N:0:0";
+		String sequence = "CTAGCATTACTTATATGATATGTCTCCATACCAATTACAATCTCCAAGTGAACGAGATCGGAAGAGCAC";
+		String quality  = "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
+		
+		Read r1 = new Read(name, sequence, quality);
+		IndexAndBarcodeKey key = new IndexAndBarcodeKey("1", "2", "Q1", "Q2");
 		MergedRead p = new MergedRead(r1, key);
+		String r1_str = r1.toString();
+		String[] r_parts = r1_str.split("\n");
 		String s = p.toString();
-		//System.out.println(s);;
-		// TODO
+		String[] s_parts = s.split("\n");
+		
+		// sequence and quality values are the same
+		for(int i = 1; i < 4; i++) {
+			assertEquals(r_parts[i], s_parts[i]);
+		}
+		assertEquals(r_parts[0], name);
+		// merged read has key added to name
+		assertEquals(s_parts[0], name.replace(" ", ";" + key.toString() + " "));
+		
+		Read r1_copy = new Read(r1_str);
+		assertEquals(r1.toString(), r1_copy.toString());
+		assertEquals(r1, r1_copy);
+		MergedRead p_copy = new MergedRead(p.toString());
+		assertEquals(s, p_copy.toString());
+		assertEquals(p, p_copy);
+	}
+	
+	@Test(expected = IllegalStateException.class)
+	public void MergedReadBadKey() {
+		String name = "@NS500217:348:HTW2FBGXY:1:11101:22352:1064;2_2_Q1_Q2 1:N:0:0";
+		String sequence = "C";
+		String quality  = "E";
+		
+		Read r1 = new Read(name, sequence, quality);
+		IndexAndBarcodeKey key = new IndexAndBarcodeKey("1", "2", "Q1", "Q2");
+		MergedRead p = new MergedRead(r1, key);
 	}
 	
 	@Test

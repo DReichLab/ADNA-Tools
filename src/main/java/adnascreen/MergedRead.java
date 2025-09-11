@@ -20,27 +20,13 @@ public class MergedRead extends Read{
 	public MergedRead(Read r, IndexAndBarcodeKey key){
 		super(r);
 		this.key = key;
-	}
-	
-	public IndexAndBarcodeKey getKey(){
-		return key;
-	}
-	
-	// TODO merged read with barcode and indices in the header should include the capability
-	// to convert to String and back again
-	/*
-	 * To facilitate use with BWA, we include the key string representation with the initial
-	 * FASTQ read group. The key representation will be copied to the SAM alignment QNAME field. 
-	 * 
-	 * For example:
-	 * 
-	 * TODO
-	 * 
-	 * Returns a string in FASTQ format with barcode and index key included
-	 */
-	public String toString(){
+		
+		/*
+		 * To facilitate use with BWA, we include the key string representation with the initial
+		 * FASTQ header. The key representation will be copied to the SAM alignment QNAME field. 
+		 */
 		StringBuilder builder = new StringBuilder();
-		builder.append(super.toString()); // FASTQ format
+		builder.append(this.getFASTQHeader().toString()); // FASTQ format
 		IndexAndBarcodeKey headerKey = this.getFASTQHeader().getKey();
 		if(headerKey == null){ // don't include the key twice
 			int firstSpaceIndex = builder.indexOf(" ");
@@ -51,7 +37,31 @@ public class MergedRead extends Read{
 				throw new IllegalStateException("IndexAndBarcodeKey mismatch " + headerKey.toString() + " " + key.toString());
 			}
 		}
-		return builder.toString();
+		this.header = new FASTQHeader(builder.toString());
+	}
+	
+	public IndexAndBarcodeKey getKey(){
+		return key;
+	}
+	
+	public MergedRead(String s) {
+		super(s);
+		String[] parts = s.split("\n");
+		int start = parts[0].indexOf(KEY_SEPARATOR);
+		int finish = parts[0].indexOf(' ');
+		if(start > 0 && finish > 0) {
+			this.key = new IndexAndBarcodeKey(parts[0].substring(start+1, finish));
+		}
+	}
+	
+	/*
+	 * To facilitate use with BWA, we include the key string representation with the initial
+	 * FASTQ header. The key representation will be copied to the SAM alignment QNAME field. 
+	 * 
+	 * Returns a string in FASTQ format with barcode and index key included
+	 */
+	public String toString(){
+		return super.toString();
 	}
 	
 	@Override
@@ -60,7 +70,7 @@ public class MergedRead extends Read{
 			return false;
 		}
 		MergedRead x = (MergedRead) other;
-		return this.key.equals(x.key) && super.equals(other);
+		return this.key.equals(x.key) && this.toString().equals(x.toString());//super.equals(other);
 	}
 	
 	/**
