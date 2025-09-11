@@ -11,9 +11,9 @@ import java.nio.file.Paths;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.help.HelpFormatter;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
@@ -27,7 +27,7 @@ import htsjdk.samtools.cram.ref.CRAMReferenceSource;
 import htsjdk.samtools.cram.ref.ReferenceSource;
 
 public class DamageRestrict {
-	public static int main(String[] args) throws IOException{
+	public static int main(String[] args) throws IOException, ParseException{
 		CommandLineParser parser = new DefaultParser();
 		
 		Options options = new Options();
@@ -63,10 +63,11 @@ public class DamageRestrict {
 			filterDamageScore(inputFilename, outputFilename, damageTag, damageThreshold, cramReference, compression);
 			return 0;
 		} catch(ParseException e) {
-			System.err.println(e.getMessage());
-			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp("DamageRestrict", options);
-			return -1;
+			HelpFormatter formatter = HelpFormatter.builder().get();
+			String commandDescription = "Restrict to only those reads meeting a post-mortem damage threshold.";
+			formatter.printHelp("DamageRestrict", commandDescription, options, Driver.submittingHelp, true);
+			System.err.println(e.getLocalizedMessage());
+			throw e;
 		}
 	}
 	

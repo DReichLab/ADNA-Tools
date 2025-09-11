@@ -12,16 +12,16 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.help.HelpFormatter;
 
 import htsjdk.samtools.fastq.FastqReader;
 import htsjdk.samtools.fastq.FastqRecord;
 
 public class FASTQFilter {
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, ParseException {
 		CommandLineParser parser = new DefaultParser();
 		Options options = new Options();
 		options.addRequiredOption("n", "length", true, "minimum length to retain");
@@ -52,9 +52,11 @@ public class FASTQFilter {
 			in.close();
 			out.close();
 		} catch (ParseException e) {
-			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp("FASTQFilter", options);
+			HelpFormatter formatter = HelpFormatter.builder().get();
+			String commandDescription = "Filter FASTQ to retain only reads of a minimum length.";
+			formatter.printHelp("FASTQFilter", commandDescription, options, Driver.submittingHelp, true);
 			System.err.println(e.getLocalizedMessage());
+			throw e;
 		}
 	}
 	

@@ -35,7 +35,7 @@ public class AlignmentComparison {
 	public static int main(String[] args) throws IOException, ParseException{
 		CommandLineParser parser = new DefaultParser();
 		
-		Option inputFiles  = Option.builder("i").longOpt("input").required().hasArgs().desc("Input SAM/BAM/CRAM file(s). This program checks that all reads in the input files are present in the output file.").build();
+		Option inputFiles  = Option.builder("i").longOpt("input").required().hasArgs().desc("Input SAM/BAM/CRAM file(s). This program checks that all reads in the input files are present in the output file.").get();
 		
 		Options options = new Options();
 		options.addRequiredOption("c", "check", true, "SAM/BAM/CRAM file to check. This program checks that all reads from inputs files are present in this file.");

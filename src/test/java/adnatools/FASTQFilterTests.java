@@ -15,6 +15,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.cli.ParseException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,7 +47,7 @@ public class FASTQFilterTests {
 	}
 	
 	@Test
-	public void fileOutput() throws IOException{
+	public void fileOutput() throws IOException, ParseException{
 		ClassLoader classLoader = getClass().getClassLoader();
 		String fastqFilename = classLoader.getResource("fastq/ultima.fastq.gz").getPath();
 		
@@ -63,7 +64,7 @@ public class FASTQFilterTests {
 	}
 	
 	@Test
-	public void fileOutputAll() throws IOException{
+	public void fileOutputAll() throws IOException, ParseException{
 		ClassLoader classLoader = getClass().getClassLoader();
 		String fastqFilename = classLoader.getResource("fastq/ultima.fastq.gz").getPath();
 		int mimimum_length_short = 10;
@@ -89,7 +90,7 @@ public class FASTQFilterTests {
 	}
 	
 	@Test
-	public void piped() throws IOException{
+	public void piped() throws IOException, ParseException{
 		ClassLoader classLoader = getClass().getClassLoader();
 		String fastqFilename = classLoader.getResource("fastq/ultima.fastq.gz").getPath();
 		

@@ -14,6 +14,7 @@ import org.apache.commons.cli.ParseException;
  */
 public class Driver {
 	public static final String PROGRAM_NAME = "adnatools";
+	public static final String submittingHelp = "https://github.com/DReichLab/ADNA-Tools";
 	
 	public static void main(String[] args) throws ParseException, IOException, java.text.ParseException, InterruptedException, ExecutionException {
 		final String versionOption = "version";
