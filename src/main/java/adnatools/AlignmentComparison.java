@@ -221,7 +221,11 @@ public class AlignmentComparison {
 				inputIterators[n] = inputReaders[n].iterator();
 				currentInputRecords[n] = inputIterators[n].next();
 				// check that reference is the same
-				if (!inputReaders[n].getFileHeader().getSequenceDictionary().equals(outputReader.getFileHeader().getSequenceDictionary())) {
+				try {
+					inputReaders[n].getFileHeader().getSequenceDictionary().assertSameDictionary(outputReader.getFileHeader().getSequenceDictionary());
+				} catch (AssertionError e){
+					System.err.println("Sequence dictionary mismatch");
+					System.err.println(e.getLocalizedMessage());
 					return false;
 				}
 			}
