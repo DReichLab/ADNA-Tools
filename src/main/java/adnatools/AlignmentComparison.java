@@ -231,8 +231,12 @@ public class AlignmentComparison {
 			}
 			
 			// each final output file record should appear in exactly one input file
+			long processedReads = 0;
+			int shortCount = 0;
 			while(outputIterator.hasNext()) {
 				SAMRecord toFind = outputIterator.next();
+				processedReads += 1;
+				shortCount += 1;
 				boolean found = false;
 				for (int n = 0; n < inputIterators.length; n++) {
 					if(compareNames(toFind, currentInputRecords[n])) {
@@ -247,6 +251,7 @@ public class AlignmentComparison {
 					}
 				}
 				if (!found) {
+					System.err.println("Mismatch at read " + processedReads);
 					System.err.println("In to check but not in inputs: ");
 					printSAMRecordFullTags(toFind, System.err);
 					System.err.println("current inputs: ");
@@ -254,6 +259,10 @@ public class AlignmentComparison {
 						printSAMRecordFullTags(currentInputRecords[n], System.err);
 					}
 					return false;
+				}
+				if(shortCount == 10000000) {
+					shortCount = 0;
+					System.err.println("Checked " + processedReads);
 				}
 			}
 			// there should be no input records remaining
