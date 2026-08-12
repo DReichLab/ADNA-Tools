@@ -66,6 +66,9 @@ public class Driver {
 		case "duplicateshistogram":
 			DuplicatesHistogram.main(remainingArgs);
 			break;
+		case "markduplicates":
+			MarkDuplicates.main(remainingArgs);
+			break;
 		case "readgrouprewrite":
 			ReadGroupRewrite.main(remainingArgs);
 			break;
