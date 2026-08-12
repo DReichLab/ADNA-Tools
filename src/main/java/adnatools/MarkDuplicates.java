@@ -26,6 +26,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
+import htsjdk.samtools.SAMProgramRecord;
 import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMRecordIterator;
@@ -163,7 +164,7 @@ public class MarkDuplicates {
 		LibraryDeduplicationScope libraryScope = new LibraryDeduplicationScope(
 				commandLine.getOptionValues("library-group"));
 		MarkDuplicates markDuplicates = new MarkDuplicates(duplicateTag, useTagInKey, removeDuplicates, libraryScope);
-		markDuplicates.markDuplicates(inputFilename, outputFilename, cramReference, compression, useBAM);
+		markDuplicates.markDuplicates(inputFilename, outputFilename, cramReference, compression, useBAM, args);
 
 		if (summaryFilename != null) {
 			markDuplicates.writeSummary(summaryFilename);
@@ -172,6 +173,11 @@ public class MarkDuplicates {
 
 	public void markDuplicates(String inputFilename, String outputFilename, String reference, int compression,
 			boolean useBAM) throws IOException {
+		markDuplicates(inputFilename, outputFilename, reference, compression, useBAM, null);
+	}
+
+	public void markDuplicates(String inputFilename, String outputFilename, String reference, int compression,
+			boolean useBAM, String[] commandLineArgs) throws IOException {
 		SamReaderFactory samReaderFactory = SamReaderFactory.makeDefault();
 		CRAMReferenceSource cramReference = null;
 		if (reference != null) {
@@ -189,6 +195,9 @@ public class MarkDuplicates {
 		}
 
 		SAMFileHeader header = reader.getFileHeader();
+		if (commandLineArgs != null) {
+			addProgramRecord(header, commandLineArgs);
+		}
 		SAMFileWriterFactory outputFileFactory = new SAMFileWriterFactory();
 		outputFileFactory.setCompressionLevel(compression);
 		BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(outputFilename));
@@ -236,6 +245,34 @@ public class MarkDuplicates {
 			output.close();
 			reader.close();
 		}
+	}
+
+	static void addProgramRecord(SAMFileHeader header, String[] commandLineArgs) {
+		List<SAMProgramRecord> programEntries = header.getProgramRecords();
+		// ensure unique ID
+		int count = 0;
+		boolean found;
+		String candidateID;
+		do {
+			count++;
+			found = false;
+			candidateID = Driver.PROGRAM_NAME + '.' + count;
+			for (SAMProgramRecord entry : programEntries) {
+				if (entry.getId().equals(candidateID)) {
+					found = true;
+					break;
+				}
+			}
+		} while (found);
+
+		SAMProgramRecord programEntry = new SAMProgramRecord(candidateID);
+		programEntry.setProgramVersion(Driver.versionString());
+		programEntry.setCommandLine("MarkDuplicates " + String.join(" ", commandLineArgs));
+		programEntry.setProgramName("MarkDuplicates");
+		if (programEntries.size() > 0) {
+			programEntry.setPreviousProgramGroupId(programEntries.get(programEntries.size() - 1).getId());
+		}
+		header.addProgramRecord(programEntry);
 	}
 
 	static boolean isEligibleForDuplicateMarking(SAMRecord record) {
@@ -350,7 +387,7 @@ public class MarkDuplicates {
 			writer.newLine();
 			writer.write("total_duplicate_reads\t" + totalDuplicateReads);
 			writer.newLine();
-			writer.write("duplicate_count\tread_groups");
+			writer.write("duplicate_count\tfrequency");
 			writer.newLine();
 			int[] histogram = getDuplicateCountHistogram();
 			for (int duplicateCount = 0; duplicateCount < histogram.length; duplicateCount++) {
