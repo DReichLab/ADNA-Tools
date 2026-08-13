@@ -76,6 +76,44 @@ public class MarkDuplicatesTest {
 	}
 
 	@Test
+	public void testMarkDuplicatesIgnoresTagValuesWhenTagDisabled() throws IOException {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String inputFilename = classLoader.getResource("mark_duplicates/mark_duplicates_tag_values.sam").getPath();
+		Path outputPath = Files.createTempFile("mark_duplicates_tag_disabled", ".sam");
+
+		try {
+			MarkDuplicates markDuplicates = new MarkDuplicates(DemultiplexSAM.duplicatesSAMTag, false, false,
+					new MarkDuplicates.LibraryDeduplicationScope());
+			markDuplicates.markDuplicates(inputFilename, outputPath.toString(), null, 5, false);
+
+			Map<String, Boolean> duplicateFlags = readDuplicateFlags(outputPath.toString());
+			assertEquals(2, duplicateFlags.size());
+			assertFalse(duplicateFlags.get("read_tag1"));
+			assertTrue(duplicateFlags.get("read_tag2"));
+		} finally {
+			Files.deleteIfExists(outputPath);
+		}
+	}
+
+	@Test
+	public void testNoTagCommandLineOptionDisablesTagInKey() throws Exception {
+		ClassLoader classLoader = getClass().getClassLoader();
+		String inputFilename = classLoader.getResource("mark_duplicates/mark_duplicates_tag_values.sam").getPath();
+		Path outputPath = Files.createTempFile("mark_duplicates_no_tag_cli", ".sam");
+
+		try {
+			MarkDuplicates.main(new String[] { "-i", inputFilename, "-o", outputPath.toString(), "--no-tag" });
+
+			Map<String, Boolean> duplicateFlags = readDuplicateFlags(outputPath.toString());
+			assertEquals(2, duplicateFlags.size());
+			assertFalse(duplicateFlags.get("read_tag1"));
+			assertTrue(duplicateFlags.get("read_tag2"));
+		} finally {
+			Files.deleteIfExists(outputPath);
+		}
+	}
+
+	@Test
 	public void testDuplicateKeySeparatesLibraries() {
 		MarkDuplicates.LibraryDeduplicationScope libraryScope = new MarkDuplicates.LibraryDeduplicationScope();
 		SAMRecord libA = buildRecord("libA", "1", 100, true, "TAG1");
